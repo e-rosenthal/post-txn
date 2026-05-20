@@ -134,4 +134,4 @@ function getWeekSchedule(which = 'next') {
   return days;
 }
 
-module.exports = { readSchedule, writeSchedule, getTodaySchedule, getWeekSchedule };
+module.exports = { readSchedule, writeSchedule, getTodaySchedule, getWeekSchedule, buildDaySchedule };

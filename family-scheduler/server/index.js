@@ -13,10 +13,12 @@ dayjs.extend(timezone);
 const { readSchedule, writeSchedule, getTodaySchedule, getWeekSchedule } = require('./scheduleStore');
 const { generateBriefing, generateWeeklySummary } = require('./agent');
 const { sendToAllParents, buildEveningReminder, buildScheduleCheckMessage } = require('./whatsapp');
+const webhookRouter = require('./webhook');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/api/whatsapp', webhookRouter);
 
 // ── REST endpoints ──────────────────────────────────────────────────────────
 

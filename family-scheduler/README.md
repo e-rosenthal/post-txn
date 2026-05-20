@@ -25,9 +25,41 @@ Edit `.env` and fill in:
 | `META_PHONE_NUMBER_ID` | Meta for Developers → your app → WhatsApp → API Setup |
 | `META_ACCESS_TOKEN` | Same page — temporary token (or System User token for production) |
 | `META_API_VERSION` | Default `v19.0` — update if Meta releases a newer stable version |
+| `META_WEBHOOK_VERIFY_TOKEN` | Any secret string you choose — paste this into Meta's webhook config |
 | `PORT` | Default `3001` |
 
-### 3. Meta Cloud API setup
+### 3. WhatsApp Chat Bot setup
+
+The bot receives messages from both parents and responds using Claude with tool access to the schedule.
+
+**Webhook registration:**
+1. Your server must be publicly reachable (use [ngrok](https://ngrok.com) for local dev: `ngrok http 3001`)
+2. In Meta for Developers → your app → WhatsApp → Configuration:
+   - **Callback URL**: `https://your-domain/api/whatsapp/webhook`
+   - **Verify token**: the value you set for `META_WEBHOOK_VERIFY_TOKEN` in `.env`
+   - Subscribe to the **messages** webhook field
+3. Both parent numbers must be verified/added to the sandbox (or a production number)
+
+**What the bot can do via WhatsApp chat:**
+- Read today's schedule, any date, this or next week
+- Add / remove parent evening activities (soloParent is auto-derived)
+- Add / remove extra one-off tasks
+- Override a single day's drop-off, pickup, or bedtime
+- Confirm next week
+
+**What it cannot do via chat** (must use the app):
+- Change the weekly rotation
+- Modify settings or WhatsApp numbers
+- Bulk-overwrite the schedule
+
+**Example messages to the bot:**
+> "What's on Friday?"
+> "Add Wife has book club at 7:30pm on Thursday"
+> "Elliot has a work dinner next Wednesday at 7pm"
+> "Change pickup to Elliot on Monday"
+> "Confirm next week"
+
+### 4. Meta Cloud API setup
 
 1. Go to [developers.facebook.com](https://developers.facebook.com)
 2. Create App → **Business** type → Add **WhatsApp** product

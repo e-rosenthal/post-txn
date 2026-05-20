@@ -168,6 +168,50 @@ export default function SettingsTab() {
         </p>
       </div>
 
+      {/* WhatsApp Bot */}
+      <div className="block-card space-y-2">
+        <h3 className="text-sm font-semibold text-gray-700">💬 WhatsApp Chat Bot</h3>
+        <p className="text-xs text-gray-500">
+          Both parents can message the bot directly on WhatsApp to read or update the schedule.
+          Point Meta's webhook to the URL below.
+        </p>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Webhook URL</label>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs bg-gray-100 rounded-lg px-3 py-2 text-gray-700 break-all">
+              {window.location.origin.replace('5173', '3001')}/api/whatsapp/webhook
+            </code>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `${window.location.origin.replace('5173', '3001')}/api/whatsapp/webhook`
+                );
+              }}
+              className="text-xs text-blue-600 hover:text-blue-800 flex-shrink-0"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-gray-400">
+          Set <code className="bg-gray-100 px-1 rounded">META_WEBHOOK_VERIFY_TOKEN</code> in your <code className="bg-gray-100 px-1 rounded">.env</code> to any secret string, then paste it in the Meta developer console when configuring the webhook.
+        </p>
+        <p className="text-xs text-gray-500 font-medium mt-1">
+          What the bot can do via chat:
+        </p>
+        <ul className="text-xs text-gray-500 space-y-0.5 ml-3">
+          <li>• Read today's or any date's schedule</li>
+          <li>• Read this or next week's full schedule</li>
+          <li>• Add / remove parent evening activities</li>
+          <li>• Add / remove extra one-off tasks</li>
+          <li>• Override a single day's drop-off, pickup, or bedtime</li>
+          <li>• Confirm next week</li>
+        </ul>
+        <p className="text-xs text-amber-600">
+          ⚠️ Cannot change the weekly rotation, settings, or WhatsApp numbers via chat — use the app for those.
+        </p>
+      </div>
+
       {/* Confirm Week */}
       <div className="block-card">
         <h3 className="text-sm font-semibold text-gray-700 mb-1">✅ Confirm Next Week</h3>
