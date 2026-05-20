@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trustly Pay-by-Bank Return Recovery Journey</title>
+<meta name="description" content="A 90-day visualization of the Trustly pay-by-bank return recovery journey, with escalating messaging across email, SMS, and phone for NSF and non-NSF returns.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+<h2 class="sr-only">Trustly pay-by-bank return recovery journey: 90-day swim-lane timeline showing NSF and non-NSF flows in parallel, plus triggered events.</h2>
+
+<div class="tj">
+  <h3>Trustly pay-by-bank return recovery journey</h3>
+  <p class="subtitle">A horizontal view of the 90-day dunning cycle showing both flows in parallel. NSF returns get two NACHA-compliant auto-retries over the week following the return; non-NSF returns route directly to customer-driven repayment. Phase bands show tone progression. Click any dot or chip for system action and full message copy.</p>
+
+  <div class="editor-bar">
+    <span class="ed-status"><span class="ed-dot" id="tj-ed-dot"></span><span id="tj-ed-count">No changes yet</span></span>
+    <span class="ed-spacer"></span>
+    <button onclick="tjExportJSON()">Export JSON</button>
+    <button onclick="tjExportMarkdown()">Export Markdown</button>
+    <button onclick="tjExportHTML()">Export HTML</button>
+    <button class="danger" onclick="tjResetAll()">Reset all</button>
+  </div>
+  <p class="editor-help">Click any subject line or message body in the detail panels to edit. Edits auto-save in your browser. Use the + buttons to add new stages, and Remove on each detail panel to delete or hide one.</p>
+
+  <div class="toggle-row">
+    <span class="toggle-label">View:</span>
+    <button class="pill active" data-view="both" onclick="tjSetView('both')">Timeline + events</button>
+    <button class="pill" data-view="timeline" onclick="tjSetView('timeline')">Timeline only</button>
+    <button class="pill" data-view="events" onclick="tjSetView('events')">Events only</button>
+  </div>
+
+  <div class="toggle-row toggle-flow">
+    <span class="toggle-label">Highlight:</span>
+    <button class="pill active" data-flow="both" onclick="tjSetFlow('both')">Both flows</button>
+    <button class="pill" data-flow="nsf" onclick="tjSetFlow('nsf')">NSF only</button>
+    <button class="pill" data-flow="non" onclick="tjSetFlow('non')">Non-NSF only</button>
+    <span class="channel-legend">
+      <span class="ch-chip E">E</span> email
+      <span class="ch-chip S">S</span> SMS
+      <span class="ch-chip P">P</span> phone
+    </span>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-grid">
+      <div class="row-label">Phase</div>
+      <div class="phase-strip" id="tj-phases"></div>
+
+      <div class="row-label lane">NSF<small>R01, R09</small></div>
+      <div class="lane-track" id="tj-lane-nsf"><div class="lane-line"></div></div>
+
+      <div class="row-label lane">Non-NSF<small>R02&ndash;R29</small></div>
+      <div class="lane-track" id="tj-lane-non"><div class="lane-line"></div></div>
+
+      <div></div>
+      <div class="axis" id="tj-axis"></div>
+    </div>
+    <div class="chart-actions">
+      <button class="pill" onclick="tjOpenAddTimelineModal()">+ Add touchpoint</button>
+    </div>
+  </div>
+
+  <div class="detail" id="tj-detail">
+    <div class="detail-head">
+      <div>
+        <div class="detail-eyebrow" id="tj-eyebrow">NSF flow &middot; Day 0</div>
+        <h4 class="detail-title" id="tj-title">Click a touchpoint above to see message copy</h4>
+      </div>
+      <div class="detail-meta" id="tj-meta"></div>
+    </div>
+    <p class="detail-body" id="tj-body"></p>
+    <div id="tj-messages"></div>
+  </div>
+
+  <div class="events-section">
+    <div class="events-header">
+      <h4>Triggered events</h4>
+      <p>Event-driven messages that fire any time the underlying condition is met &mdash; independent of the day-based dunning timeline above. Click any event to see and edit its copy.</p>
+    </div>
+    <div class="events-grid" id="tj-events-grid"></div>
+    <div class="detail" id="tj-event-detail">
+      <div class="detail-head">
+        <div>
+          <div class="detail-eyebrow" id="tj-event-eyebrow">Triggered event</div>
+          <h4 class="detail-title" id="tj-event-title"></h4>
+        </div>
+        <div class="detail-meta" id="tj-event-meta"></div>
+      </div>
+      <p class="detail-body" id="tj-event-body"></p>
+      <div id="tj-event-messages"></div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h4>When does the DPD clock start?</h4>
+      <p>Run two clocks in parallel &mdash; they answer different questions and shouldn't be conflated.</p>
+      <div class="clock-row">
+        <div class="clock-label">Internal</div>
+        <div class="clock-val">Starts at <strong>return date (Day 0)</strong>. Drives charge-off triggers, bureau reporting at 30/60/90, merchant settlement reversals, and risk reporting. Don't restart this when retries fail &mdash; you'll hit charge-off later and roll deeper into uncollectible buckets.</div>
+      </div>
+      <div class="clock-row">
+        <div class="clock-label">Customer</div>
+        <div class="clock-val">"Past due" framing in messaging waits until <strong>retries are exhausted</strong> (around Day 10 for NSF, Day 7 for non-NSF). It's unfair to tell a customer they're past due while you're still automatically trying.</div>
+      </div>
+      <div class="clock-row">
+        <div class="clock-label">Why both</div>
+        <div class="clock-val">Aligns risk metrics with industry conventions while keeping the customer experience honest. Most best-in-class operators (utilities, telco, BNPL) decouple the two.</div>
+      </div>
+    </div>
+    <div class="info-card principles">
+      <h4>Operating principles</h4>
+      <ul>
+        <li>NACHA permits up to 2 re-presentments of an NSF return within 180 days of original settlement, but exact retry timing is dynamic &mdash; both attempts typically land within the week following the original return.</li>
+        <li>Always lead by reminding the customer who Trustly is and which merchant the payment was for &mdash; they may not be on a Trustly-branded surface.</li>
+        <li>Always disclose the bank-account hold: the original account is paused for future Trustly payments until the situation is resolved.</li>
+        <li>Self-serve repayment accepts bank, debit, and credit. Live agents enter the picture at Day 45.</li>
+        <li>Hardship and payment-plan options surface from Day 30; settlement offers from Day 75.</li>
+        <li>All messaging complies with Reg E, FDCPA, TCPA, and applicable state laws; STOP/opt-out language on every SMS and email.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>Trustly Risk Product &middot; Pay-by-Bank Return Recovery Journey &middot; v3</footer>
+</div>
+</div>
+
+<div class="tj-modal" id="tj-modal" hidden>
+  <div class="tj-modal-backdrop" onclick="tjCloseModal()"></div>
+  <div class="tj-modal-content">
+    <div class="tj-modal-head">
+      <h4 id="tj-modal-title">Add</h4>
+      <button class="tj-modal-close" onclick="tjCloseModal()" aria-label="Close">&times;</button>
+    </div>
+    <p class="modal-help" id="tj-modal-help"></p>
+    <form id="tj-modal-form" onsubmit="event.preventDefault(); tjModalSave();">
+      <div class="form-row">
+        <label>Title</label>
+        <input type="text" name="title" required maxlength="120">
+      </div>
+      <div class="form-row tj-mode-event">
+        <label>When does it fire?</label>
+        <input type="text" name="when" maxlength="120" placeholder="e.g., Customer completes a payment plan">
+      </div>
+      <div class="form-row tj-mode-timeline">
+        <label>Flow</label>
+        <select name="flow">
+          <option value="nsf">NSF (R01, R09)</option>
+          <option value="non">Non-NSF (R02&ndash;R29)</option>
+        </select>
+      </div>
+      <div class="form-row tj-mode-timeline">
+        <label>Day (0&ndash;90)</label>
+        <input type="number" name="day" min="0" max="90" step="1" value="28">
+      </div>
+      <div class="form-row tj-mode-timeline">
+        <label>Short label</label>
+        <input type="text" name="label" maxlength="40" placeholder="e.g., past due, retry, escalation">
+      </div>
+      <div class="form-row">
+        <label>Tone</label>
+        <select name="tone">
+          <option value="soft">Soft / informational</option>
+          <option value="firm">Firm / past due</option>
+          <option value="final">Final / pre-charge-off</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>System action / note</label>
+        <input type="text" name="system" maxlength="80" placeholder="e.g., Auto &middot; queue retry">
+      </div>
+      <div class="form-row">
+        <label>Channels</label>
+        <div class="checkbox-row">
+          <label><input type="checkbox" name="ch_E" checked> Email</label>
+          <label><input type="checkbox" name="ch_S"> SMS</label>
+          <label><input type="checkbox" name="ch_P"> Phone</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" onclick="tjCloseModal()">Cancel</button>
+        <button type="submit" class="primary" id="tj-modal-submit">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
