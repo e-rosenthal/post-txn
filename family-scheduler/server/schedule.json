@@ -1,0 +1,85 @@
+{
+  "family": {
+    "whatsapp": {
+      "Elliot": "+1XXXXXXXXXX",
+      "Wife": "+1XXXXXXXXXX"
+    }
+  },
+  "dailyStructure": {
+    "morningRoutine": {
+      "time": "07:00",
+      "tasks": ["Kids get dressed", "Breakfast", "Pack bags"],
+      "emoji": "🌅"
+    },
+    "dinner": {
+      "time": "17:45",
+      "task": "Family dinner",
+      "emoji": "🍽️"
+    },
+    "bedtime": {
+      "time": "18:45",
+      "tasks": ["Bath", "PJs", "Stories", "Lights out"],
+      "emoji": "🌙"
+    }
+  },
+  "weeklyAssignments": {
+    "monday":    { "dropoff": "Elliot", "pickup": "Wife",   "bedtime": "Elliot" },
+    "tuesday":   { "dropoff": "Wife",   "pickup": "Elliot", "bedtime": "Wife"   },
+    "wednesday": { "dropoff": "Elliot", "pickup": "Wife",   "bedtime": "Elliot" },
+    "thursday":  { "dropoff": "Wife",   "pickup": "Elliot", "bedtime": "Wife"   },
+    "friday":    { "dropoff": "Elliot", "pickup": "Wife",   "bedtime": "Elliot" },
+    "saturday":  { "dropoff": null,     "pickup": null,     "bedtime": "both"   },
+    "sunday":    { "dropoff": null,     "pickup": null,     "bedtime": "both"   }
+  },
+  "dropoffTime": "08:00",
+  "pickupTime": "15:30",
+  "overrides": {
+    "2026-05-21": {
+      "dropoff": "Elliot",
+      "pickup": "Elliot",
+      "bedtime": "Elliot",
+      "parentActivities": [
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "who": "Wife",
+          "time": "19:00",
+          "activity": "Book Club",
+          "emoji": "📚",
+          "soloParent": "Elliot"
+        }
+      ],
+      "extraTasks": []
+    },
+    "2026-05-22": {
+      "dropoff": "Wife",
+      "pickup": "Wife",
+      "bedtime": "Wife",
+      "parentActivities": [
+        {
+          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "who": "Elliot",
+          "time": "19:30",
+          "activity": "SVAJ Strategic Planning Committee",
+          "emoji": "🏛️",
+          "soloParent": "Wife"
+        }
+      ],
+      "extraTasks": [
+        {
+          "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "time": "09:00",
+          "who": "Elliot",
+          "task": "Child2 doctor appointment",
+          "emoji": "🏥"
+        }
+      ]
+    }
+  },
+  "settings": {
+    "morningBriefingTime": "06:45",
+    "eveningReminderTime": "17:00",
+    "autoSendEnabled": true,
+    "timezone": "America/Chicago",
+    "shabbatAwareMode": true
+  }
+}
