@@ -9,7 +9,7 @@ const conversationHistories = new Map();
 const MAX_HISTORY = 20; // 10 turn pairs
 
 const CHAT_SYSTEM = `You are the Rosenthal family's scheduling assistant — warm, sharp, and WhatsApp-native.
-The family: *Elliot* and *Wife* (parents), two kids in school in Skokie, Illinois.
+The family: *Elliot* and *Naomi* (parents), two kids in school in Skokie, Illinois.
 Tone: friendly, concise. Use emojis. Bold names with *asterisks*. Keep replies under 150 words for simple queries.
 
 You have tools to read and make limited updates to the family schedule:
@@ -64,11 +64,11 @@ const TOOL_DEFINITIONS = [
       type: 'object',
       properties: {
         date:        { type: 'string', description: 'YYYY-MM-DD' },
-        who:         { type: 'string', enum: ['Elliot', 'Wife'], description: 'The parent who is out.' },
+        who:         { type: 'string', enum: ['Elliot', 'Naomi'], description: 'The parent who is out.' },
         time:        { type: 'string', description: 'Time in HH:MM 24-hour format.' },
         activity:    { type: 'string', description: 'Name of the activity.' },
         emoji:       { type: 'string', description: 'A relevant emoji.' },
-        soloParent:  { type: 'string', enum: ['Elliot', 'Wife'], description: 'The parent staying home. Always set this to the other parent.' },
+        soloParent:  { type: 'string', enum: ['Elliot', 'Naomi'], description: 'The parent staying home. Always set this to the other parent.' },
       },
       required: ['date', 'who', 'time', 'activity', 'soloParent'],
     },
@@ -93,7 +93,7 @@ const TOOL_DEFINITIONS = [
       properties: {
         date:  { type: 'string', description: 'YYYY-MM-DD' },
         time:  { type: 'string', description: 'HH:MM 24-hour format.' },
-        who:   { type: 'string', enum: ['Elliot', 'Wife', 'both'] },
+        who:   { type: 'string', enum: ['Elliot', 'Naomi', 'both'] },
         task:  { type: 'string', description: 'Task description.' },
         emoji: { type: 'string', description: 'A relevant emoji.' },
       },
@@ -120,9 +120,22 @@ const TOOL_DEFINITIONS = [
       properties: {
         date:  { type: 'string', description: 'YYYY-MM-DD' },
         field: { type: 'string', enum: ['dropoff', 'pickup', 'bedtime'] },
-        value: { type: 'string', description: 'Elliot, Wife, both, or null to clear the override.' },
+        value: { type: 'string', description: 'Elliot, Naomi, both, or null to clear the override.' },
       },
       required: ['date', 'field', 'value'],
+    },
+  },
+  {
+    name: 'set_meal',
+    description: "Set what's for dinner on a specific date and who is cooking.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: 'YYYY-MM-DD' },
+        meal: { type: 'string', description: "What's for dinner (e.g. 'Roast chicken')." },
+        cook: { type: 'string', enum: ['Elliot', 'Naomi', 'both'], description: 'Who is cooking.' },
+      },
+      required: ['date', 'meal', 'cook'],
     },
   },
   {
@@ -224,6 +237,14 @@ function dispatchTool(name, input) {
         schedule.overrides[input.date][input.field] = input.value === 'null' ? null : input.value;
         writeSchedule(schedule);
         return { ok: true, date: input.date, field: input.field, value: input.value };
+      }
+
+      case 'set_meal': {
+        const schedule = readSchedule();
+        if (!schedule.meals) schedule.meals = {};
+        schedule.meals[input.date] = { meal: input.meal, cook: input.cook };
+        writeSchedule(schedule);
+        return { ok: true, date: input.date, meal: input.meal, cook: input.cook };
       }
 
       case 'confirm_week': {

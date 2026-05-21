@@ -42,6 +42,8 @@ function buildDaySchedule(schedule, targetDate) {
   const { morningRoutine, dinner, bedtime: bedtimeBlock } = schedule.dailyStructure;
   const isWeekend = dayName === 'saturday' || dayName === 'sunday';
 
+  const mealData = schedule.meals?.[dateString] || null;
+
   const blocks = [];
 
   blocks.push({
@@ -76,6 +78,7 @@ function buildDaySchedule(schedule, targetDate) {
     who: 'both',
     tasks: [dinner.task],
     emoji: dinner.emoji,
+    meal: mealData,
   });
 
   blocks.push({
@@ -95,6 +98,7 @@ function buildDaySchedule(schedule, targetDate) {
     soloParentTonight,
     dropoffTime: schedule.dropoffTime,
     pickupTime:  schedule.pickupTime,
+    meal: mealData,
   };
 }
 

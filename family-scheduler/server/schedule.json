@@ -2,7 +2,7 @@
   "family": {
     "whatsapp": {
       "Elliot": "+1XXXXXXXXXX",
-      "Wife": "+1XXXXXXXXXX"
+      "Naomi": "+1XXXXXXXXXX"
     }
   },
   "dailyStructure": {
@@ -23,16 +23,25 @@
     }
   },
   "weeklyAssignments": {
-    "monday":    { "dropoff": "Elliot", "pickup": "Wife",   "bedtime": "Elliot" },
-    "tuesday":   { "dropoff": "Wife",   "pickup": "Elliot", "bedtime": "Wife"   },
-    "wednesday": { "dropoff": "Elliot", "pickup": "Wife",   "bedtime": "Elliot" },
-    "thursday":  { "dropoff": "Wife",   "pickup": "Elliot", "bedtime": "Wife"   },
-    "friday":    { "dropoff": "Elliot", "pickup": "Wife",   "bedtime": "Elliot" },
+    "monday":    { "dropoff": "Elliot", "pickup": "Naomi",  "bedtime": "Elliot" },
+    "tuesday":   { "dropoff": "Naomi",  "pickup": "Elliot", "bedtime": "Naomi"  },
+    "wednesday": { "dropoff": "Elliot", "pickup": "Naomi",  "bedtime": "Elliot" },
+    "thursday":  { "dropoff": "Naomi",  "pickup": "Elliot", "bedtime": "Naomi"  },
+    "friday":    { "dropoff": "Elliot", "pickup": "Naomi",  "bedtime": "Elliot" },
     "saturday":  { "dropoff": null,     "pickup": null,     "bedtime": "both"   },
     "sunday":    { "dropoff": null,     "pickup": null,     "bedtime": "both"   }
   },
   "dropoffTime": "08:00",
   "pickupTime": "15:30",
+  "meals": {
+    "2026-05-21": { "meal": "Pasta with marinara", "cook": "Naomi" },
+    "2026-05-22": { "meal": "Roast chicken", "cook": "Elliot" },
+    "2026-05-25": { "meal": "Salmon with vegetables", "cook": "Naomi" },
+    "2026-05-26": { "meal": "Tacos", "cook": "Elliot" },
+    "2026-05-27": { "meal": "Stir fry", "cook": "Naomi" },
+    "2026-05-28": { "meal": "Soup and bread", "cook": "both" },
+    "2026-05-29": { "meal": "Shabbat chicken", "cook": "Naomi" }
+  },
   "overrides": {
     "2026-05-21": {
       "dropoff": "Elliot",
@@ -41,7 +50,7 @@
       "parentActivities": [
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "who": "Wife",
+          "who": "Naomi",
           "time": "19:00",
           "activity": "Book Club",
           "emoji": "📚",
@@ -51,9 +60,9 @@
       "extraTasks": []
     },
     "2026-05-22": {
-      "dropoff": "Wife",
-      "pickup": "Wife",
-      "bedtime": "Wife",
+      "dropoff": "Naomi",
+      "pickup": "Naomi",
+      "bedtime": "Naomi",
       "parentActivities": [
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
@@ -61,7 +70,7 @@
           "time": "19:30",
           "activity": "SVAJ Strategic Planning Committee",
           "emoji": "🏛️",
-          "soloParent": "Wife"
+          "soloParent": "Naomi"
         }
       ],
       "extraTasks": [
@@ -78,6 +87,7 @@
   "settings": {
     "morningBriefingTime": "06:45",
     "eveningReminderTime": "17:00",
+    "weeklySummaryTime": "20:00",
     "autoSendEnabled": true,
     "timezone": "America/Chicago",
     "shabbatAwareMode": true

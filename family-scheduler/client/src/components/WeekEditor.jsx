@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
-const PARENT_OPTIONS = ['Elliot', 'Wife', 'both', null];
 
 function AssignSelect({ value, onChange, allowNull }) {
   return (
@@ -13,16 +12,34 @@ function AssignSelect({ value, onChange, allowNull }) {
     >
       {allowNull && <option value="">N/A</option>}
       <option value="Elliot">Elliot</option>
-      <option value="Wife">Wife</option>
+      <option value="Naomi">Naomi</option>
       <option value="both">Both</option>
     </select>
   );
 }
 
+// Returns the Mon–Sun dates for the current week (Sun=0 based)
+function getThisWeekDates() {
+  const today = new Date();
+  const day = today.getDay(); // 0=Sun
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+}
+
+const WEEK_DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
 export default function WeekEditor() {
   const [schedule, setSchedule] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+
+  const weekDates = getThisWeekDates(); // [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
 
   useEffect(() => {
     fetch('/api/schedule').then(r => r.json()).then(setSchedule);
@@ -39,6 +56,19 @@ export default function WeekEditor() {
       weeklyAssignments: {
         ...prev.weeklyAssignments,
         [day]: { ...prev.weeklyAssignments[day], [field]: value },
+      },
+    }));
+  }
+
+  function setMeal(date, field, value) {
+    setSchedule(prev => ({
+      ...prev,
+      meals: {
+        ...(prev.meals || {}),
+        [date]: {
+          ...(prev.meals?.[date] || { meal: '', cook: 'Elliot' }),
+          [field]: value,
+        },
       },
     }));
   }
@@ -72,7 +102,7 @@ export default function WeekEditor() {
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-gray-900">Weekly Assignments</h2>
 
-      {/* Time fields */}
+      {/* Shared times */}
       <div className="block-card">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Shared Times</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -124,6 +154,47 @@ export default function WeekEditor() {
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">🌙 Bedtime</label>
                   <AssignSelect value={a.bedtime} onChange={v => setDayField(day, 'bedtime', v)} allowNull={false} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* This week's meals */}
+      <div className="block-card space-y-3">
+        <h3 className="text-sm font-semibold text-gray-700">🍽️ This Week's Dinners</h3>
+        <p className="text-xs text-gray-400">Plan what's for dinner each night and who's cooking.</p>
+        {weekDates.map((date, i) => {
+          const dayName = WEEK_DAY_ORDER[i];
+          const mealEntry = schedule.meals?.[date] || { meal: '', cook: 'Elliot' };
+          return (
+            <div key={date} className="bg-gray-50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-700">
+                  {DAY_LABELS[dayName]} <span className="font-normal text-gray-400">{date.slice(5)}</span>
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <input
+                    type="text"
+                    value={mealEntry.meal || ''}
+                    onChange={e => setMeal(date, 'meal', e.target.value)}
+                    placeholder="What's for dinner?"
+                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+                <div>
+                  <select
+                    value={mealEntry.cook || 'Elliot'}
+                    onChange={e => setMeal(date, 'cook', e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  >
+                    <option value="Elliot">Elliot</option>
+                    <option value="Naomi">Naomi</option>
+                    <option value="both">Both</option>
+                  </select>
                 </div>
               </div>
             </div>

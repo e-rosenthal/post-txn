@@ -7,7 +7,7 @@ function WhoChip({ who }) {
   if (!who) return null;
   if (who === 'both') return <span className="chip-both">Both</span>;
   if (who === 'Elliot') return <span className="chip-elliot">Elliot</span>;
-  if (who === 'Wife') return <span className="chip-wife">Wife</span>;
+  if (who === 'Naomi') return <span className="chip-wife">Naomi</span>;
   return null;
 }
 
@@ -22,7 +22,7 @@ function AssignSelect({ value, onChange, label }) {
       >
         <option value="">N/A</option>
         <option value="Elliot">Elliot</option>
-        <option value="Wife">Wife</option>
+        <option value="Naomi">Naomi</option>
         <option value="both">Both</option>
       </select>
     </div>
@@ -88,7 +88,7 @@ export default function OverridesTab() {
   }
 
   function otherParent(who) {
-    return who === 'Elliot' ? 'Wife' : 'Elliot';
+    return who === 'Elliot' ? 'Naomi' : 'Elliot';
   }
 
   function addActivity() {
@@ -199,6 +199,53 @@ export default function OverridesTab() {
         />
       </div>
 
+      {/* Dinner */}
+      <div className="block-card space-y-3">
+        <h3 className="text-sm font-semibold text-gray-700">🍽️ Dinner</h3>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="col-span-2">
+            <label className="text-xs text-gray-500 block mb-1">What's for dinner?</label>
+            <input
+              type="text"
+              value={schedule.meals?.[selectedDate]?.meal || ''}
+              onChange={e => setSchedule(prev => ({
+                ...prev,
+                meals: {
+                  ...(prev.meals || {}),
+                  [selectedDate]: {
+                    ...(prev.meals?.[selectedDate] || { cook: 'Elliot' }),
+                    meal: e.target.value,
+                  },
+                },
+              }))}
+              placeholder="e.g. Roast chicken…"
+              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Who cooks?</label>
+            <select
+              value={schedule.meals?.[selectedDate]?.cook || 'Elliot'}
+              onChange={e => setSchedule(prev => ({
+                ...prev,
+                meals: {
+                  ...(prev.meals || {}),
+                  [selectedDate]: {
+                    ...(prev.meals?.[selectedDate] || { meal: '' }),
+                    cook: e.target.value,
+                  },
+                },
+              }))}
+              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              <option value="Elliot">Elliot</option>
+              <option value="Naomi">Naomi</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Parent Activities */}
       <div className="block-card space-y-3">
         <h3 className="text-sm font-semibold text-gray-700">🗓️ Parent Evening Activities</h3>
@@ -233,7 +280,7 @@ export default function OverridesTab() {
                 className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm mt-0.5"
               >
                 <option>Elliot</option>
-                <option>Wife</option>
+                <option>Naomi</option>
               </select>
             </div>
             <div>
@@ -318,7 +365,7 @@ export default function OverridesTab() {
                 className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm mt-0.5"
               >
                 <option>Elliot</option>
-                <option>Wife</option>
+                <option>Naomi</option>
                 <option value="both">Both</option>
               </select>
             </div>

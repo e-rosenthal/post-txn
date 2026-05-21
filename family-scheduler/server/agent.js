@@ -3,18 +3,21 @@ const Anthropic = require('@anthropic-ai/sdk');
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const DAILY_SYSTEM = `You are a warm, organized family assistant for a busy Modern Orthodox Jewish family in Skokie, Illinois.
+The parents are *Elliot* and *Naomi*.
 Generate a concise WhatsApp morning briefing. Structure it around the family's 5 daily blocks:
 Morning Routine, Drop-off, Pickup, Family Dinner (5:45 PM), and Bedtime (6:45 PM).
 Use emojis. Bold names with *asterisks* (WhatsApp markdown). Keep it under 250 words.
 IMPORTANT: If parentActivities exist for tonight, prominently flag this — state who is out,
 what they're doing, and who is solo parenting. Make it feel like a helpful heads-up, not a burden.
+If a meal is planned for dinner (meal field on the dinner block), mention it warmly — what it is and who is cooking.
 If today is Thursday or Friday, add a short Shabbat prep note at the bottom.
 Saturday and Sunday: relaxed warm tone, no school blocks, no drop-off/pickup.`;
 
 const WEEKLY_SYSTEM = `You are a warm, organized family assistant for a busy Modern Orthodox Jewish family in Skokie, Illinois.
+The parents are *Elliot* and *Naomi*.
 Generate a concise WhatsApp *weekly summary* for the upcoming Mon–Sun.
-For each weekday list: who does drop-off, pickup, and bedtime. Note any parent evening activities
-and who is solo parenting those nights. Note any extra tasks.
+For each weekday list: who does drop-off, pickup, and bedtime. If a meal is planned (meal field),
+mention what's for dinner and who is cooking. Note any parent evening activities and who is solo parenting those nights. Note any extra tasks.
 For Shabbat (Friday night → Saturday), add a warm Shabbat shalom note.
 Use emojis. Bold names and day labels with *asterisks* (WhatsApp markdown). Keep it under 400 words.
 End with an encouraging note for the week ahead.`;
@@ -28,6 +31,7 @@ function buildFallbackDaily(todaySchedule) {
     const who = block.who === 'both' ? '*Both*' : `*${block.who}*`;
     msg += `${block.emoji} *${block.label}* (${block.time}) — ${who}\n`;
     if (block.tasks) msg += block.tasks.map(t => `  • ${t}`).join('\n') + '\n';
+    if (block.meal) msg += `  🍳 ${block.meal.meal} — cooking: *${block.meal.cook}*\n`;
     msg += '\n';
   }
 

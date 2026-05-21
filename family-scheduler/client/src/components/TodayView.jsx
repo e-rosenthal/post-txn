@@ -4,7 +4,7 @@ function WhoChip({ who }) {
   if (!who) return null;
   if (who === 'both') return <span className="chip-both">Both</span>;
   if (who === 'Elliot') return <span className="chip-elliot">Elliot</span>;
-  if (who === 'Wife') return <span className="chip-wife">Wife</span>;
+  if (who === 'Naomi') return <span className="chip-wife">Naomi</span>;
   return <span className="chip-both">{who}</span>;
 }
 
@@ -39,7 +39,7 @@ function PreviewModal({ text, onSend, onClose, sending }) {
           <div className="bg-[#dcf8c6] rounded-2xl rounded-tl-sm p-3 text-sm text-gray-900 leading-relaxed max-h-72 overflow-y-auto">
             {formatWhatsApp(text)}
           </div>
-          <p className="text-xs text-gray-400 mt-2 text-center">Will be sent to both Elliot and Wife</p>
+          <p className="text-xs text-gray-400 mt-2 text-center">Will be sent to both Elliot and Naomi</p>
         </div>
         <div className="p-4 pt-0 flex gap-3">
           <button
@@ -181,7 +181,7 @@ export default function TodayView() {
             key={idx}
             className={`block-card ${
               item.who === 'Elliot' ? 'border-l-4 border-blue-400' :
-              item.who === 'Wife'   ? 'border-l-4 border-rose-400' :
+              item.who === 'Naomi'  ? 'border-l-4 border-rose-400' :
                                       'border-l-4 border-purple-400'
             }`}
           >
@@ -204,6 +204,12 @@ export default function TodayView() {
                   </li>
                 ))}
               </ul>
+            )}
+            {item.meal && (
+              <div className="mt-2 ml-11 flex items-center gap-2">
+                <span className="text-xs text-gray-700">🍳 {item.meal.meal}</span>
+                <WhoChip who={item.meal.cook} />
+              </div>
             )}
           </div>
         )

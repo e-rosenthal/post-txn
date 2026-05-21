@@ -154,11 +154,11 @@ export default function SettingsTab() {
           />
         </div>
         <div>
-          <label className="text-xs text-rose-600 font-medium block mb-1">Wife</label>
+          <label className="text-xs text-rose-600 font-medium block mb-1">Naomi</label>
           <input
             type="tel"
-            value={family?.whatsapp?.Wife || ''}
-            onChange={e => setWhatsApp('Wife', e.target.value)}
+            value={family?.whatsapp?.Naomi || ''}
+            onChange={e => setWhatsApp('Naomi', e.target.value)}
             placeholder="+1XXXXXXXXXX"
             className="w-full border border-rose-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
           />
@@ -172,7 +172,7 @@ export default function SettingsTab() {
       <div className="block-card space-y-2">
         <h3 className="text-sm font-semibold text-gray-700">💬 WhatsApp Chat Bot</h3>
         <p className="text-xs text-gray-500">
-          Both parents can message the bot directly on WhatsApp to read or update the schedule.
+          Elliot and Naomi can message the bot directly on WhatsApp to read or update the schedule.
           Point Meta's webhook to the URL below.
         </p>
         <div>
