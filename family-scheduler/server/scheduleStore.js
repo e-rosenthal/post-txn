@@ -7,7 +7,17 @@ const timezone = require('dayjs/plugin/timezone');
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-const SCHEDULE_PATH = path.join(__dirname, 'schedule.json');
+// In production (Fly.io), DATA_DIR=/data points to a persistent volume.
+// On first boot the volume is empty, so we copy the bundled default.
+const DATA_DIR = process.env.DATA_DIR || __dirname;
+const SCHEDULE_PATH = path.join(DATA_DIR, 'schedule.json');
+const DEFAULT_SCHEDULE_PATH = path.join(__dirname, 'schedule.json');
+
+if (DATA_DIR !== __dirname && !fs.existsSync(SCHEDULE_PATH)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.copyFileSync(DEFAULT_SCHEDULE_PATH, SCHEDULE_PATH);
+  console.log('[scheduleStore] Initialized /data/schedule.json from default');
+}
 
 function readSchedule() {
   const raw = fs.readFileSync(SCHEDULE_PATH, 'utf8');

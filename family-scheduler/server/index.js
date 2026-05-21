@@ -218,6 +218,15 @@ function scheduleCrons() {
 
 scheduleCrons();
 
+// Serve the built React frontend (production / Fly.io)
+const clientDist = require('path').join(__dirname, '..', 'client', 'dist');
+if (require('fs').existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get('*', (req, res) => {
+    res.sendFile(require('path').join(clientDist, 'index.html'));
+  });
+}
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`[server] Running on port ${PORT}`);
