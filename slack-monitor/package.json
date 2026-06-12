@@ -1,0 +1,13 @@
+{
+  "name": "slack-channel-monitor",
+  "version": "1.0.0",
+  "description": "Monitors a Slack channel for keywords and posts alerts",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.22.0",
+    "dotenv": "^16.4.5"
+  }
+}
