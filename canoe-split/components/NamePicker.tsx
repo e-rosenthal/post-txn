@@ -4,10 +4,12 @@ import { useState } from "react";
 import type { Person } from "@/lib/types";
 
 export default function NamePicker({
+  tripName,
   people,
   onAddPerson,
   onPick,
 }: {
+  tripName: string;
   people: Person[];
   onAddPerson: (name: string) => Promise<void>;
   onPick: (personId: number) => void;
@@ -34,7 +36,7 @@ export default function NamePicker({
 
   return (
     <div className="card">
-      <h1>🛶 Canoe Trip Split</h1>
+      <h1>🛶 {tripName}</h1>
       <p className="muted" style={{ marginTop: 6, marginBottom: 14 }}>
         {people.length === 0
           ? "First person here — add everyone going on the trip, then pick your own name."

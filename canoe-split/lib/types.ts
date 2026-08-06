@@ -13,3 +13,6 @@ export type ExpenseWithSplits = {
 
 export type Settlement = { fromId: number; fromName: string; toId: number; toName: string; amount: number };
 export type NetBalance = { id: number; name: string; net: number };
+export type TripSettings = { name: string };
+export type ImportSkip = { row: number; reason: string };
+export type ImportResult = { imported: number; skipped: ImportSkip[] };

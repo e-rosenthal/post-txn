@@ -10,6 +10,20 @@ No accounts, no passwords: everyone opens the same link and picks their name fro
 - **Add an expense**: description, amount, who paid, who it's split between (defaults to everyone, with "Everyone" / "Just the payer" shortcuts), optional receipt photo.
 - **Who owes who**: computed automatically from every expense, then reduced to the minimum number of payments (e.g. if Bob owes Alice $10 and Alice owes Carol $10, it just shows Bob owes Carol $10 — Alice's already settled inside the math and never has to touch money).
 - Anyone can add or remove an expense.
+- **Trip settings** (`/admin`, linked from the header as "Trip settings"): rename the trip, add/rename/remove people, bulk-import expenses from a CSV, and edit or delete any expense. This page isn't password-protected — it's reachable by anyone with the app link, same trust model as the rest of the app. Say the word if you'd rather it be locked behind a shared passcode.
+
+## Importing expenses from a CSV
+
+On the Trip settings page: **Download CSV template** for the exact column format, or build your own with these columns:
+
+| column | required | notes |
+| --- | --- | --- |
+| `description` | yes | |
+| `amount` | yes | plain number, no currency symbol |
+| `paid_by` | yes | must match a name already in the trip |
+| `split_with` | no | semicolon-separated names (e.g. `Alice;Bob`), or `everyone` / blank to split with the whole group |
+
+Upload the file and it reports how many rows imported and, for any it skipped, which row and why (unknown name, bad amount, etc.) so you can fix and re-upload just those rows.
 
 ## Deploy (Vercel, free tier)
 

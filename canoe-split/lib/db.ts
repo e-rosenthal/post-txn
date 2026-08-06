@@ -49,6 +49,14 @@ export function ensureSchema(): Promise<void> {
           PRIMARY KEY (expense_id, person_id)
         );
       `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS trip_settings (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          name TEXT NOT NULL DEFAULT 'Our Trip',
+          CONSTRAINT trip_settings_single_row CHECK (id = 1)
+        );
+      `;
+      await sql`INSERT INTO trip_settings (id, name) VALUES (1, 'Our Trip') ON CONFLICT (id) DO NOTHING;`;
     })();
   }
   return schemaReady;
@@ -72,6 +80,36 @@ export async function addPerson(name: string): Promise<Person> {
     RETURNING id, name;
   `;
   return rows[0];
+}
+
+export async function renamePerson(id: number, name: string): Promise<Person> {
+  await ensureSchema();
+  const sql = getSql();
+  try {
+    const rows = await sql<Person[]>`
+      UPDATE people SET name = ${name} WHERE id = ${id} RETURNING id, name;
+    `;
+    if (rows.length === 0) throw new Error("Person not found");
+    return rows[0];
+  } catch (err: any) {
+    if (err?.code === "23505") throw new Error("Someone already has that name");
+    throw err;
+  }
+}
+
+export async function deletePerson(id: number): Promise<void> {
+  await ensureSchema();
+  const sql = getSql();
+  const [{ count: paidCount }] = await sql<{ count: string }[]>`
+    SELECT count(*)::text FROM expenses WHERE paid_by = ${id};
+  `;
+  const [{ count: splitCount }] = await sql<{ count: string }[]>`
+    SELECT count(*)::text FROM expense_splits WHERE person_id = ${id};
+  `;
+  if (Number(paidCount) > 0 || Number(splitCount) > 0) {
+    throw new Error("Can't remove someone who's on existing expenses — edit or delete those expenses first.");
+  }
+  await sql`DELETE FROM people WHERE id = ${id};`;
 }
 
 export type ExpenseWithSplits = {
@@ -153,10 +191,57 @@ export async function addExpense(input: {
   return expenseId;
 }
 
+export async function updateExpense(
+  id: number,
+  input: {
+    description: string;
+    amount: number;
+    paidBy: number;
+    splitWith: number[];
+    receiptUrl?: string | null;
+  }
+): Promise<void> {
+  await ensureSchema();
+  const sql = getSql();
+  const { description, amount, paidBy, splitWith, receiptUrl } = input;
+
+  await sql`
+    UPDATE expenses
+    SET description = ${description}, amount = ${amount}, paid_by = ${paidBy}, receipt_url = ${receiptUrl ?? null}
+    WHERE id = ${id};
+  `;
+  await sql`DELETE FROM expense_splits WHERE expense_id = ${id};`;
+  for (const personId of splitWith) {
+    await sql`
+      INSERT INTO expense_splits (expense_id, person_id)
+      VALUES (${id}, ${personId})
+      ON CONFLICT DO NOTHING;
+    `;
+  }
+}
+
 export async function deleteExpense(id: number): Promise<void> {
   await ensureSchema();
   const sql = getSql();
   await sql`DELETE FROM expenses WHERE id = ${id};`;
+}
+
+export type TripSettings = { name: string };
+
+export async function getTripSettings(): Promise<TripSettings> {
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql<TripSettings[]>`SELECT name FROM trip_settings WHERE id = 1;`;
+  return rows[0] ?? { name: "Our Trip" };
+}
+
+export async function updateTripName(name: string): Promise<TripSettings> {
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql<TripSettings[]>`
+    UPDATE trip_settings SET name = ${name} WHERE id = 1 RETURNING name;
+  `;
+  return rows[0];
 }
 
 export async function computeNetBalances(): Promise<{ id: number; name: string; net: number }[]> {
