@@ -5,7 +5,12 @@ import { toCsvRow } from "@/lib/csv";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const people = await getPeople();
+  let people;
+  try {
+    people = await getPeople();
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load people" }, { status: 500 });
+  }
   const names = people.map((p) => p.name);
   const examplePayer = names[0] ?? "Alice";
   const examplePair = names.length >= 2 ? `${names[0]};${names[1]}` : "Alice;Bob";

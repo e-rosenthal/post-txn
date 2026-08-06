@@ -11,7 +11,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json();
-  const people = await getPeople();
+
+  let people;
+  try {
+    people = await getPeople();
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load people" }, { status: 500 });
+  }
   const validIds = new Set(people.map((p) => p.id));
 
   try {
@@ -28,6 +34,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!Number.isFinite(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
-  await deleteExpense(id);
-  return NextResponse.json({ ok: true });
+  try {
+    await deleteExpense(id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to delete" }, { status: 500 });
+  }
 }

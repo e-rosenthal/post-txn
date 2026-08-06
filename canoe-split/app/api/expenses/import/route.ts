@@ -34,7 +34,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const people = await getPeople();
+  let people;
+  try {
+    people = await getPeople();
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load people" }, { status: 500 });
+  }
   const byName = new Map(people.map((p) => [p.name.trim().toLowerCase(), p]));
 
   const dataRows = rows.slice(1);

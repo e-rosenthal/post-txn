@@ -4,8 +4,12 @@ import { addPerson, getPeople } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const people = await getPeople();
-  return NextResponse.json({ people });
+  try {
+    const people = await getPeople();
+    return NextResponse.json({ people });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load people" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -19,6 +23,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name is too long" }, { status: 400 });
   }
 
-  const person = await addPerson(name);
-  return NextResponse.json({ person });
+  try {
+    const person = await addPerson(name);
+    return NextResponse.json({ person });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to add person" }, { status: 500 });
+  }
 }

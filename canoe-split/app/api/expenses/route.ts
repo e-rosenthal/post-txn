@@ -5,13 +5,23 @@ import { validateExpenseInput } from "@/lib/validate";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const expenses = await getExpenses();
-  return NextResponse.json({ expenses });
+  try {
+    const expenses = await getExpenses();
+    return NextResponse.json({ expenses });
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load expenses" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const people = await getPeople();
+
+  let people;
+  try {
+    people = await getPeople();
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load people" }, { status: 500 });
+  }
   const validIds = new Set(people.map((p) => p.id));
 
   try {

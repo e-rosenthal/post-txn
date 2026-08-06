@@ -6,6 +6,7 @@ import NamePicker from "@/components/NamePicker";
 import ExpenseForm from "@/components/ExpenseForm";
 import ExpenseList from "@/components/ExpenseList";
 import BalancesView from "@/components/BalancesView";
+import { fetchJson } from "@/lib/fetchJson";
 import type { ExpenseWithSplits, Person, Settlement } from "@/lib/types";
 
 const ME_KEY = "canoe_split_me_id";
@@ -18,32 +19,38 @@ export default function Home() {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [meId, setMeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [tripRes, peopleRes, expensesRes, balancesRes] = await Promise.all([
-      fetch("/api/trip"),
-      fetch("/api/people"),
-      fetch("/api/expenses"),
-      fetch("/api/balances"),
+    const [tripData, peopleData, expensesData, balancesData] = await Promise.all([
+      fetchJson<{ trip: { name: string } }>("/api/trip"),
+      fetchJson<{ people: Person[] }>("/api/people"),
+      fetchJson<{ expenses: ExpenseWithSplits[] }>("/api/expenses"),
+      fetchJson<{ settlements: Settlement[] }>("/api/balances"),
     ]);
-    const tripData = await tripRes.json();
-    const peopleData = await peopleRes.json();
-    const expensesData = await expensesRes.json();
-    const balancesData = await balancesRes.json();
     setTripName(tripData.trip?.name ?? DEFAULT_TRIP_NAME);
     setPeople(peopleData.people ?? []);
     setExpenses(expensesData.expenses ?? []);
     setSettlements(balancesData.settlements ?? []);
   }, []);
 
-  useEffect(() => {
-    (async () => {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
       await refresh();
       const stored = window.localStorage.getItem(ME_KEY);
       if (stored) setMeId(Number(stored));
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Something went wrong loading the trip.");
+    } finally {
       setLoading(false);
-    })();
+    }
   }, [refresh]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function handleAddPerson(name: string) {
     const res = await fetch("/api/people", {
@@ -67,6 +74,21 @@ export default function Home() {
 
   if (loading) {
     return <p className="spinner-text">Loading…</p>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="card">
+        <h2>Couldn't load the trip</h2>
+        <p className="error-text">{loadError}</p>
+        <p className="muted" style={{ marginTop: 8 }}>
+          If this is a fresh deployment, make sure a Postgres database is connected in Vercel's Storage tab.
+        </p>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={load}>
+          Try again
+        </button>
+      </div>
+    );
   }
 
   const me = people.find((p) => p.id === meId);

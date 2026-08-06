@@ -6,6 +6,7 @@ import TripNameEditor from "@/components/TripNameEditor";
 import PeopleManager from "@/components/PeopleManager";
 import CsvImport from "@/components/CsvImport";
 import AdminExpenseTable from "@/components/AdminExpenseTable";
+import { fetchJson } from "@/lib/fetchJson";
 import type { ExpenseWithSplits, Person } from "@/lib/types";
 
 export default function AdminPage() {
@@ -13,30 +14,52 @@ export default function AdminPage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [expenses, setExpenses] = useState<ExpenseWithSplits[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [tripRes, peopleRes, expensesRes] = await Promise.all([
-      fetch("/api/trip"),
-      fetch("/api/people"),
-      fetch("/api/expenses"),
+    const [tripData, peopleData, expensesData] = await Promise.all([
+      fetchJson<{ trip: { name: string } }>("/api/trip"),
+      fetchJson<{ people: Person[] }>("/api/people"),
+      fetchJson<{ expenses: ExpenseWithSplits[] }>("/api/expenses"),
     ]);
-    const tripData = await tripRes.json();
-    const peopleData = await peopleRes.json();
-    const expensesData = await expensesRes.json();
     setTripName(tripData.trip?.name ?? "Our Trip");
     setPeople(peopleData.people ?? []);
     setExpenses(expensesData.expenses ?? []);
   }, []);
 
-  useEffect(() => {
-    (async () => {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
       await refresh();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Something went wrong loading trip settings.");
+    } finally {
       setLoading(false);
-    })();
+    }
   }, [refresh]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (loading) {
     return <p className="spinner-text">Loading…</p>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="card">
+        <h2>Couldn't load trip settings</h2>
+        <p className="error-text">{loadError}</p>
+        <p className="muted" style={{ marginTop: 8 }}>
+          If this is a fresh deployment, make sure a Postgres database is connected in Vercel's Storage tab.
+        </p>
+        <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={load}>
+          Try again
+        </button>
+      </div>
+    );
   }
 
   return (
