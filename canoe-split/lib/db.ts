@@ -1,0 +1,179 @@
+import postgres from "postgres";
+
+let _sql: postgres.Sql | null = null;
+
+function getSql() {
+  if (!_sql) {
+    const connectionString =
+      process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL_UNPOOLED;
+    if (!connectionString) {
+      throw new Error(
+        "No database connection string found. In Vercel, add a Postgres store (Storage tab) and connect it " +
+          "to this project — that sets DATABASE_URL automatically."
+      );
+    }
+    const isLocal = /localhost|127\.0\.0\.1/.test(connectionString);
+    _sql = postgres(connectionString, { ssl: isLocal ? false : "require" });
+  }
+  return _sql;
+}
+
+let schemaReady: Promise<void> | null = null;
+
+/** Idempotent, cheap to call from every request — no separate migration step to run. */
+export function ensureSchema(): Promise<void> {
+  if (!schemaReady) {
+    const sql = getSql();
+    schemaReady = (async () => {
+      await sql`
+        CREATE TABLE IF NOT EXISTS people (
+          id SERIAL PRIMARY KEY,
+          name TEXT UNIQUE NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        );
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS expenses (
+          id SERIAL PRIMARY KEY,
+          description TEXT NOT NULL,
+          amount NUMERIC(10, 2) NOT NULL,
+          paid_by INTEGER NOT NULL REFERENCES people(id) ON DELETE RESTRICT,
+          receipt_url TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        );
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS expense_splits (
+          expense_id INTEGER NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
+          person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE RESTRICT,
+          PRIMARY KEY (expense_id, person_id)
+        );
+      `;
+    })();
+  }
+  return schemaReady;
+}
+
+export type Person = { id: number; name: string };
+
+export async function getPeople(): Promise<Person[]> {
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql<Person[]>`SELECT id, name FROM people ORDER BY id ASC;`;
+  return rows;
+}
+
+export async function addPerson(name: string): Promise<Person> {
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql<Person[]>`
+    INSERT INTO people (name) VALUES (${name})
+    ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+    RETURNING id, name;
+  `;
+  return rows[0];
+}
+
+export type ExpenseWithSplits = {
+  id: number;
+  description: string;
+  amount: number;
+  paidById: number;
+  paidByName: string;
+  receiptUrl: string | null;
+  createdAt: string;
+  splitWith: { id: number; name: string }[];
+};
+
+export async function getExpenses(): Promise<ExpenseWithSplits[]> {
+  await ensureSchema();
+  const sql = getSql();
+  const rows = await sql`
+    SELECT
+      e.id,
+      e.description,
+      e.amount,
+      e.paid_by AS paid_by_id,
+      p.name AS paid_by_name,
+      e.receipt_url,
+      e.created_at,
+      COALESCE(
+        json_agg(
+          json_build_object('id', sp.id, 'name', sp.name)
+          ORDER BY sp.id
+        ) FILTER (WHERE sp.id IS NOT NULL),
+        '[]'
+      ) AS split_with
+    FROM expenses e
+    JOIN people p ON p.id = e.paid_by
+    LEFT JOIN expense_splits es ON es.expense_id = e.id
+    LEFT JOIN people sp ON sp.id = es.person_id
+    GROUP BY e.id, p.name
+    ORDER BY e.created_at DESC, e.id DESC;
+  `;
+
+  return rows.map((r: any) => ({
+    id: r.id,
+    description: r.description,
+    amount: Number(r.amount),
+    paidById: r.paid_by_id,
+    paidByName: r.paid_by_name,
+    receiptUrl: r.receipt_url,
+    createdAt: r.created_at,
+    splitWith: typeof r.split_with === "string" ? JSON.parse(r.split_with) : r.split_with,
+  }));
+}
+
+export async function addExpense(input: {
+  description: string;
+  amount: number;
+  paidBy: number;
+  splitWith: number[];
+  receiptUrl?: string | null;
+}): Promise<number> {
+  await ensureSchema();
+  const sql = getSql();
+  const { description, amount, paidBy, splitWith, receiptUrl } = input;
+
+  const rows = await sql`
+    INSERT INTO expenses (description, amount, paid_by, receipt_url)
+    VALUES (${description}, ${amount}, ${paidBy}, ${receiptUrl ?? null})
+    RETURNING id;
+  `;
+  const expenseId = rows[0].id as number;
+
+  for (const personId of splitWith) {
+    await sql`
+      INSERT INTO expense_splits (expense_id, person_id)
+      VALUES (${expenseId}, ${personId})
+      ON CONFLICT DO NOTHING;
+    `;
+  }
+
+  return expenseId;
+}
+
+export async function deleteExpense(id: number): Promise<void> {
+  await ensureSchema();
+  const sql = getSql();
+  await sql`DELETE FROM expenses WHERE id = ${id};`;
+}
+
+export async function computeNetBalances(): Promise<{ id: number; name: string; net: number }[]> {
+  const people = await getPeople();
+  const expenses = await getExpenses();
+
+  const net = new Map<number, number>(people.map((p) => [p.id, 0]));
+
+  for (const exp of expenses) {
+    const participants = exp.splitWith.length > 0 ? exp.splitWith : [{ id: exp.paidById, name: exp.paidByName }];
+    const share = exp.amount / participants.length;
+
+    net.set(exp.paidById, (net.get(exp.paidById) ?? 0) + exp.amount);
+    for (const person of participants) {
+      net.set(person.id, (net.get(person.id) ?? 0) - share);
+    }
+  }
+
+  return people.map((p) => ({ id: p.id, name: p.name, net: Math.round((net.get(p.id) ?? 0) * 100) / 100 }));
+}
