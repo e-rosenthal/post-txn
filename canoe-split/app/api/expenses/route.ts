@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const expenses = await getExpenses();
+    const expenses = await getExpenses("expense");
     return NextResponse.json({ expenses });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load expenses" }, { status: 500 });

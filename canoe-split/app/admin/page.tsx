@@ -6,25 +6,29 @@ import TripNameEditor from "@/components/TripNameEditor";
 import PeopleManager from "@/components/PeopleManager";
 import CsvImport from "@/components/CsvImport";
 import AdminExpenseTable from "@/components/AdminExpenseTable";
+import PaymentsList from "@/components/PaymentsList";
 import { fetchJson } from "@/lib/fetchJson";
-import type { ExpenseWithSplits, Person } from "@/lib/types";
+import type { ExpenseWithSplits, Payment, Person } from "@/lib/types";
 
 export default function AdminPage() {
   const [tripName, setTripName] = useState("");
   const [people, setPeople] = useState<Person[]>([]);
   const [expenses, setExpenses] = useState<ExpenseWithSplits[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [tripData, peopleData, expensesData] = await Promise.all([
+    const [tripData, peopleData, expensesData, paymentsData] = await Promise.all([
       fetchJson<{ trip: { name: string } }>("/api/trip"),
       fetchJson<{ people: Person[] }>("/api/people"),
       fetchJson<{ expenses: ExpenseWithSplits[] }>("/api/expenses"),
+      fetchJson<{ payments: Payment[] }>("/api/payments"),
     ]);
     setTripName(tripData.trip?.name ?? "Our Trip");
     setPeople(peopleData.people ?? []);
     setExpenses(expensesData.expenses ?? []);
+    setPayments(paymentsData.payments ?? []);
   }, []);
 
   const load = useCallback(async () => {
@@ -78,6 +82,7 @@ export default function AdminPage() {
       <PeopleManager people={people} onChanged={refresh} />
       <CsvImport onImported={refresh} />
       <AdminExpenseTable expenses={expenses} people={people} onChanged={refresh} />
+      <PaymentsList payments={payments} onDeleted={refresh} />
     </div>
   );
 }

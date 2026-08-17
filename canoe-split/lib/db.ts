@@ -57,6 +57,8 @@ export function ensureSchema(): Promise<void> {
         );
       `;
       await sql`INSERT INTO trip_settings (id, name) VALUES (1, 'Our Trip') ON CONFLICT (id) DO NOTHING;`;
+      // Additive only: every existing row backfills to 'expense', so nothing already entered changes.
+      await sql`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'expense';`;
     })();
   }
   return schemaReady;
@@ -112,6 +114,8 @@ export async function deletePerson(id: number): Promise<void> {
   await sql`DELETE FROM people WHERE id = ${id};`;
 }
 
+export type ExpenseKind = "expense" | "payment";
+
 export type ExpenseWithSplits = {
   id: number;
   description: string;
@@ -120,10 +124,12 @@ export type ExpenseWithSplits = {
   paidByName: string;
   receiptUrl: string | null;
   createdAt: string;
+  kind: ExpenseKind;
   splitWith: { id: number; name: string }[];
 };
 
-export async function getExpenses(): Promise<ExpenseWithSplits[]> {
+/** Omit kindFilter to get everything (used for balance math, which must include payments). */
+export async function getExpenses(kindFilter?: ExpenseKind): Promise<ExpenseWithSplits[]> {
   await ensureSchema();
   const sql = getSql();
   const rows = await sql`
@@ -131,6 +137,7 @@ export async function getExpenses(): Promise<ExpenseWithSplits[]> {
       e.id,
       e.description,
       e.amount,
+      e.kind,
       e.paid_by AS paid_by_id,
       p.name AS paid_by_name,
       e.receipt_url,
@@ -146,6 +153,7 @@ export async function getExpenses(): Promise<ExpenseWithSplits[]> {
     JOIN people p ON p.id = e.paid_by
     LEFT JOIN expense_splits es ON es.expense_id = e.id
     LEFT JOIN people sp ON sp.id = es.person_id
+    ${kindFilter ? sql`WHERE e.kind = ${kindFilter}` : sql``}
     GROUP BY e.id, p.name
     ORDER BY e.created_at DESC, e.id DESC;
   `;
@@ -158,6 +166,7 @@ export async function getExpenses(): Promise<ExpenseWithSplits[]> {
     paidByName: r.paid_by_name,
     receiptUrl: r.receipt_url,
     createdAt: r.created_at,
+    kind: r.kind,
     splitWith: typeof r.split_with === "string" ? JSON.parse(r.split_with) : r.split_with,
   }));
 }
@@ -168,14 +177,15 @@ export async function addExpense(input: {
   paidBy: number;
   splitWith: number[];
   receiptUrl?: string | null;
+  kind?: ExpenseKind;
 }): Promise<number> {
   await ensureSchema();
   const sql = getSql();
-  const { description, amount, paidBy, splitWith, receiptUrl } = input;
+  const { description, amount, paidBy, splitWith, receiptUrl, kind } = input;
 
   const rows = await sql`
-    INSERT INTO expenses (description, amount, paid_by, receipt_url)
-    VALUES (${description}, ${amount}, ${paidBy}, ${receiptUrl ?? null})
+    INSERT INTO expenses (description, amount, paid_by, receipt_url, kind)
+    VALUES (${description}, ${amount}, ${paidBy}, ${receiptUrl ?? null}, ${kind ?? "expense"})
     RETURNING id;
   `;
   const expenseId = rows[0].id as number;
@@ -226,6 +236,49 @@ export async function deleteExpense(id: number): Promise<void> {
   await sql`DELETE FROM expenses WHERE id = ${id};`;
 }
 
+export type Payment = {
+  id: number;
+  fromId: number;
+  fromName: string;
+  toId: number;
+  toName: string;
+  amount: number;
+  note: string;
+  createdAt: string;
+};
+
+/** A payment is stored as an expense row split with exactly one person — same debt math, different label. */
+export async function addPayment(input: {
+  fromId: number;
+  toId: number;
+  amount: number;
+  note?: string | null;
+}): Promise<number> {
+  const { fromId, toId, amount, note } = input;
+  return addExpense({
+    description: note?.trim() ? note.trim() : "Payment",
+    amount,
+    paidBy: fromId,
+    splitWith: [toId],
+    receiptUrl: null,
+    kind: "payment",
+  });
+}
+
+export async function getPayments(): Promise<Payment[]> {
+  const rows = await getExpenses("payment");
+  return rows.map((r) => ({
+    id: r.id,
+    fromId: r.paidById,
+    fromName: r.paidByName,
+    toId: r.splitWith[0]?.id ?? 0,
+    toName: r.splitWith[0]?.name ?? "",
+    amount: r.amount,
+    note: r.description === "Payment" ? "" : r.description,
+    createdAt: r.createdAt,
+  }));
+}
+
 export type TripSettings = { name: string };
 
 export async function getTripSettings(): Promise<TripSettings> {
@@ -246,6 +299,7 @@ export async function updateTripName(name: string): Promise<TripSettings> {
 
 export async function computeNetBalances(): Promise<{ id: number; name: string; net: number }[]> {
   const people = await getPeople();
+  // No kind filter here on purpose — payments must count toward balances just like shared expenses do.
   const expenses = await getExpenses();
 
   const net = new Map<number, number>(people.map((p) => [p.id, 0]));
