@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addPayment, getPayments, getPeople } from "@/lib/db";
+import { parseAddedBy } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
       toId,
       amount: Math.round(amount * 100) / 100,
       note: note || null,
+      addedBy: parseAddedBy(body, validIds),
     });
     return NextResponse.json({ id });
   } catch (err) {

@@ -3,7 +3,13 @@
 import { useRef, useState } from "react";
 import type { ImportResult } from "@/lib/types";
 
-export default function CsvImport({ onImported }: { onImported: () => Promise<void> }) {
+export default function CsvImport({
+  onImported,
+  addedBy,
+}: {
+  onImported: () => Promise<void>;
+  addedBy: number | null;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -21,7 +27,7 @@ export default function CsvImport({ onImported }: { onImported: () => Promise<vo
       const res = await fetch("/api/expenses/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csv: text }),
+        body: JSON.stringify({ csv: text, addedBy }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Import failed");

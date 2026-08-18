@@ -1,10 +1,7 @@
 "use client";
 
+import { formatMoney } from "@/lib/format";
 import type { Settlement } from "@/lib/types";
-
-function formatMoney(n: number) {
-  return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
-}
 
 export default function BalancesView({ settlements, meId }: { settlements: Settlement[]; meId: number }) {
   return (

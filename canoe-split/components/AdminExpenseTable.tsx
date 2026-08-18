@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import { upload } from "@vercel/blob/client";
+import { formatAdded, formatMoney } from "@/lib/format";
 import type { ExpenseWithSplits, Person } from "@/lib/types";
-
-function formatMoney(n: number) {
-  return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
-}
 
 export default function AdminExpenseTable({
   expenses,
@@ -175,6 +172,7 @@ export default function AdminExpenseTable({
                 <div className="expense-meta">
                   {exp.paidByName} paid · split with {exp.splitWith.map((p) => p.name).join(", ")}
                 </div>
+                <div className="expense-meta">{formatAdded(exp.createdAt, exp.addedByName)}</div>
                 <div className="expense-actions">
                   <button onClick={() => startEdit(exp)}>Edit</button>
                   <button className="danger" onClick={() => handleDelete(exp.id)} disabled={busy}>

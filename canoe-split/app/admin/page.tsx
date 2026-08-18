@@ -15,6 +15,7 @@ export default function AdminPage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [expenses, setExpenses] = useState<ExpenseWithSplits[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [meId, setMeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -36,6 +37,8 @@ export default function AdminPage() {
     setLoadError(null);
     try {
       await refresh();
+      const stored = window.localStorage.getItem("canoe_split_me_id");
+      if (stored) setMeId(Number(stored));
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Something went wrong loading trip settings.");
     } finally {
@@ -80,9 +83,9 @@ export default function AdminPage() {
 
       <TripNameEditor name={tripName} onChanged={refresh} />
       <PeopleManager people={people} onChanged={refresh} />
-      <CsvImport onImported={refresh} />
+      <CsvImport onImported={refresh} addedBy={meId} />
       <AdminExpenseTable expenses={expenses} people={people} onChanged={refresh} />
-      <PaymentsList payments={payments} onDeleted={refresh} />
+      <PaymentsList payments={payments} onDeleted={refresh} showAddedInfo />
     </div>
   );
 }

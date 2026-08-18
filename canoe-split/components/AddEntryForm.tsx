@@ -63,6 +63,7 @@ export default function AddEntryForm({
         paidBy,
         splitWith: Array.from(splitWith),
         receiptUrl,
+        addedBy: meId,
       }),
     });
     if (!res.ok) {
@@ -81,7 +82,13 @@ export default function AddEntryForm({
     const res = await fetch("/api/payments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fromId: paidBy, toId, amount: amountNum, note: note.trim() || undefined }),
+      body: JSON.stringify({
+        fromId: paidBy,
+        toId,
+        amount: amountNum,
+        note: note.trim() || undefined,
+        addedBy: meId,
+      }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));

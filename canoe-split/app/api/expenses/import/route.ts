@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addExpense, getPeople } from "@/lib/db";
 import { parseCsv } from "@/lib/csv";
+import { parseAddedBy } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to load people" }, { status: 500 });
   }
   const byName = new Map(people.map((p) => [p.name.trim().toLowerCase(), p]));
+  const addedBy = parseAddedBy(body, new Set(people.map((p) => p.id)));
 
   const dataRows = rows.slice(1);
   const skipped: SkipReason[] = [];
@@ -104,6 +106,7 @@ export async function POST(req: NextRequest) {
       paidBy: payer.id,
       splitWith,
       receiptUrl: null,
+      addedBy,
     });
     imported++;
   }

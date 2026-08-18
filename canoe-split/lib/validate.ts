@@ -4,7 +4,14 @@ export type ValidatedExpense = {
   paidBy: number;
   splitWith: number[];
   receiptUrl: string | null;
+  addedBy: number | null;
 };
+
+/** Attribution is best-effort: an unrecognized or missing value is dropped rather than rejected. */
+export function parseAddedBy(body: any, validIds: Set<number>): number | null {
+  const addedBy = Number(body?.addedBy);
+  return Number.isFinite(addedBy) && validIds.has(addedBy) ? addedBy : null;
+}
 
 /** Throws a plain Error with a user-facing message on the first invalid field. */
 export function validateExpenseInput(body: any, validIds: Set<number>): ValidatedExpense {
@@ -24,5 +31,12 @@ export function validateExpenseInput(body: any, validIds: Set<number>): Validate
     throw new Error("Unknown person in request");
   }
 
-  return { description, amount: Math.round(amount * 100) / 100, paidBy, splitWith, receiptUrl };
+  return {
+    description,
+    amount: Math.round(amount * 100) / 100,
+    paidBy,
+    splitWith,
+    receiptUrl,
+    addedBy: parseAddedBy(body, validIds),
+  };
 }

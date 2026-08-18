@@ -59,6 +59,12 @@ export function ensureSchema(): Promise<void> {
       await sql`INSERT INTO trip_settings (id, name) VALUES (1, 'Our Trip') ON CONFLICT (id) DO NOTHING;`;
       // Additive only: every existing row backfills to 'expense', so nothing already entered changes.
       await sql`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'expense';`;
+      // Nullable: rows added before this existed have no attribution, and ON DELETE SET NULL keeps
+      // removing a person from blocking on entries they happened to type in.
+      await sql`
+        ALTER TABLE expenses ADD COLUMN IF NOT EXISTS added_by INTEGER
+        REFERENCES people(id) ON DELETE SET NULL;
+      `;
     })();
   }
   return schemaReady;
@@ -125,6 +131,7 @@ export type ExpenseWithSplits = {
   receiptUrl: string | null;
   createdAt: string;
   kind: ExpenseKind;
+  addedByName: string | null;
   splitWith: { id: number; name: string }[];
 };
 
@@ -140,6 +147,7 @@ export async function getExpenses(kindFilter?: ExpenseKind): Promise<ExpenseWith
       e.kind,
       e.paid_by AS paid_by_id,
       p.name AS paid_by_name,
+      ab.name AS added_by_name,
       e.receipt_url,
       e.created_at,
       COALESCE(
@@ -151,10 +159,11 @@ export async function getExpenses(kindFilter?: ExpenseKind): Promise<ExpenseWith
       ) AS split_with
     FROM expenses e
     JOIN people p ON p.id = e.paid_by
+    LEFT JOIN people ab ON ab.id = e.added_by
     LEFT JOIN expense_splits es ON es.expense_id = e.id
     LEFT JOIN people sp ON sp.id = es.person_id
     ${kindFilter ? sql`WHERE e.kind = ${kindFilter}` : sql``}
-    GROUP BY e.id, p.name
+    GROUP BY e.id, p.name, ab.name
     ORDER BY e.created_at DESC, e.id DESC;
   `;
 
@@ -167,6 +176,7 @@ export async function getExpenses(kindFilter?: ExpenseKind): Promise<ExpenseWith
     receiptUrl: r.receipt_url,
     createdAt: r.created_at,
     kind: r.kind,
+    addedByName: r.added_by_name ?? null,
     splitWith: typeof r.split_with === "string" ? JSON.parse(r.split_with) : r.split_with,
   }));
 }
@@ -178,14 +188,18 @@ export async function addExpense(input: {
   splitWith: number[];
   receiptUrl?: string | null;
   kind?: ExpenseKind;
+  addedBy?: number | null;
 }): Promise<number> {
   await ensureSchema();
   const sql = getSql();
-  const { description, amount, paidBy, splitWith, receiptUrl, kind } = input;
+  const { description, amount, paidBy, splitWith, receiptUrl, kind, addedBy } = input;
 
   const rows = await sql`
-    INSERT INTO expenses (description, amount, paid_by, receipt_url, kind)
-    VALUES (${description}, ${amount}, ${paidBy}, ${receiptUrl ?? null}, ${kind ?? "expense"})
+    INSERT INTO expenses (description, amount, paid_by, receipt_url, kind, added_by)
+    VALUES (
+      ${description}, ${amount}, ${paidBy}, ${receiptUrl ?? null},
+      ${kind ?? "expense"}, ${addedBy ?? null}
+    )
     RETURNING id;
   `;
   const expenseId = rows[0].id as number;
@@ -245,6 +259,7 @@ export type Payment = {
   amount: number;
   note: string;
   createdAt: string;
+  addedByName: string | null;
 };
 
 /** A payment is stored as an expense row split with exactly one person — same debt math, different label. */
@@ -253,8 +268,9 @@ export async function addPayment(input: {
   toId: number;
   amount: number;
   note?: string | null;
+  addedBy?: number | null;
 }): Promise<number> {
-  const { fromId, toId, amount, note } = input;
+  const { fromId, toId, amount, note, addedBy } = input;
   return addExpense({
     description: note?.trim() ? note.trim() : "Payment",
     amount,
@@ -262,6 +278,7 @@ export async function addPayment(input: {
     splitWith: [toId],
     receiptUrl: null,
     kind: "payment",
+    addedBy,
   });
 }
 
@@ -276,6 +293,7 @@ export async function getPayments(): Promise<Payment[]> {
     amount: r.amount,
     note: r.description === "Payment" ? "" : r.description,
     createdAt: r.createdAt,
+    addedByName: r.addedByName,
   }));
 }
 

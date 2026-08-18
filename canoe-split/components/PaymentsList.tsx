@@ -1,18 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { formatAdded, formatMoney } from "@/lib/format";
 import type { Payment } from "@/lib/types";
-
-function formatMoney(n: number) {
-  return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
-}
 
 export default function PaymentsList({
   payments,
   onDeleted,
+  showAddedInfo = false,
 }: {
   payments: Payment[];
   onDeleted: () => Promise<void>;
+  showAddedInfo?: boolean;
 }) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -38,6 +37,7 @@ export default function PaymentsList({
               {p.fromName} paid {p.toName}
             </div>
             {p.note && <div className="expense-meta">{p.note}</div>}
+            {showAddedInfo && <div className="expense-meta">{formatAdded(p.createdAt, p.addedByName)}</div>}
             <div className="expense-actions">
               <button className="danger" onClick={() => handleDelete(p.id)} disabled={deletingId === p.id}>
                 {deletingId === p.id ? "Removing…" : "Remove"}

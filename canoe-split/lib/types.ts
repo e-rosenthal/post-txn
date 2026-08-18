@@ -11,6 +11,7 @@ export type ExpenseWithSplits = {
   receiptUrl: string | null;
   createdAt: string;
   kind: ExpenseKind;
+  addedByName: string | null;
   splitWith: { id: number; name: string }[];
 };
 
@@ -23,6 +24,7 @@ export type Payment = {
   amount: number;
   note: string;
   createdAt: string;
+  addedByName: string | null;
 };
 
 export type Settlement = { fromId: number; fromName: string; toId: number; toName: string; amount: number };

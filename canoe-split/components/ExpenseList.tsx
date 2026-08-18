@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { formatMoney } from "@/lib/format";
 import type { ExpenseWithSplits } from "@/lib/types";
-
-function formatMoney(n: number) {
-  return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
-}
 
 export default function ExpenseList({
   expenses,
