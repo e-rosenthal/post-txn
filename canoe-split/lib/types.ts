@@ -1,4 +1,11 @@
-export type Person = { id: number; name: string };
+export type Person = {
+  id: number;
+  name: string;
+  paymentMethod: string | null;
+  paymentHandle: string | null;
+};
+
+export const PAYMENT_METHODS = ["Venmo", "Zelle", "PayPal", "Cash", "Other"] as const;
 
 export type ExpenseKind = "expense" | "payment";
 

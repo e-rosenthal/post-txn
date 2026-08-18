@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deletePerson, renamePerson } from "@/lib/db";
+import { deletePerson, updatePerson } from "@/lib/db";
+import { PAYMENT_METHODS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+/** Absent key = leave alone; empty string = clear it. */
+function readOptionalText(value: unknown, maxLength: number): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, maxLength);
+}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const id = Number(params.id);
@@ -10,19 +21,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json();
-  const name = typeof body?.name === "string" ? body.name.trim() : "";
-  if (!name) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  }
-  if (name.length > 40) {
-    return NextResponse.json({ error: "Name is too long" }, { status: 400 });
+
+  let name: string | undefined;
+  if (body?.name !== undefined) {
+    name = typeof body.name === "string" ? body.name.trim() : "";
+    if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    if (name.length > 40) return NextResponse.json({ error: "Name is too long" }, { status: 400 });
   }
 
+  const paymentMethod = readOptionalText(body?.paymentMethod, 20);
+  if (typeof paymentMethod === "string" && !PAYMENT_METHODS.includes(paymentMethod as any)) {
+    return NextResponse.json({ error: "Unknown payment method" }, { status: 400 });
+  }
+  const paymentHandle = readOptionalText(body?.paymentHandle, 80);
+
   try {
-    const person = await renamePerson(id, name);
+    const person = await updatePerson(id, { name, paymentMethod, paymentHandle });
     return NextResponse.json({ person });
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to rename" }, { status: 400 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed to update" }, { status: 400 });
   }
 }
 

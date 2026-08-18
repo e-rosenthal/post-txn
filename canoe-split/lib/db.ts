@@ -65,40 +65,76 @@ export function ensureSchema(): Promise<void> {
         ALTER TABLE expenses ADD COLUMN IF NOT EXISTS added_by INTEGER
         REFERENCES people(id) ON DELETE SET NULL;
       `;
+      await sql`ALTER TABLE people ADD COLUMN IF NOT EXISTS payment_method TEXT;`;
+      await sql`ALTER TABLE people ADD COLUMN IF NOT EXISTS payment_handle TEXT;`;
     })();
   }
   return schemaReady;
 }
 
-export type Person = { id: number; name: string };
+export type Person = {
+  id: number;
+  name: string;
+  paymentMethod: string | null;
+  paymentHandle: string | null;
+};
 
 export async function getPeople(): Promise<Person[]> {
   await ensureSchema();
   const sql = getSql();
-  const rows = await sql<Person[]>`SELECT id, name FROM people ORDER BY id ASC;`;
-  return rows;
+  const rows = await sql`
+    SELECT id, name, payment_method, payment_handle FROM people ORDER BY id ASC;
+  `;
+  return rows.map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    paymentMethod: r.payment_method ?? null,
+    paymentHandle: r.payment_handle ?? null,
+  }));
 }
 
 export async function addPerson(name: string): Promise<Person> {
   await ensureSchema();
   const sql = getSql();
-  const rows = await sql<Person[]>`
+  const rows = await sql`
     INSERT INTO people (name) VALUES (${name})
     ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
-    RETURNING id, name;
+    RETURNING id, name, payment_method, payment_handle;
   `;
-  return rows[0];
+  const r = rows[0] as any;
+  return { id: r.id, name: r.name, paymentMethod: r.payment_method ?? null, paymentHandle: r.payment_handle ?? null };
 }
 
-export async function renamePerson(id: number, name: string): Promise<Person> {
+/** Fields left `undefined` keep their current value; pass an explicit null to clear one. */
+export async function updatePerson(
+  id: number,
+  input: { name?: string; paymentMethod?: string | null; paymentHandle?: string | null }
+): Promise<Person> {
   await ensureSchema();
   const sql = getSql();
+
+  const existing = await sql`SELECT id, name, payment_method, payment_handle FROM people WHERE id = ${id};`;
+  if (existing.length === 0) throw new Error("Person not found");
+  const current = existing[0] as any;
+
+  const name = input.name ?? current.name;
+  const method = input.paymentMethod !== undefined ? input.paymentMethod : current.payment_method;
+  const handle = input.paymentHandle !== undefined ? input.paymentHandle : current.payment_handle;
+
   try {
-    const rows = await sql<Person[]>`
-      UPDATE people SET name = ${name} WHERE id = ${id} RETURNING id, name;
+    const rows = await sql`
+      UPDATE people
+      SET name = ${name}, payment_method = ${method ?? null}, payment_handle = ${handle ?? null}
+      WHERE id = ${id}
+      RETURNING id, name, payment_method, payment_handle;
     `;
-    if (rows.length === 0) throw new Error("Person not found");
-    return rows[0];
+    const r = rows[0] as any;
+    return {
+      id: r.id,
+      name: r.name,
+      paymentMethod: r.payment_method ?? null,
+      paymentHandle: r.payment_handle ?? null,
+    };
   } catch (err: any) {
     if (err?.code === "23505") throw new Error("Someone already has that name");
     throw err;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatPaymentPref } from "@/lib/format";
 import type { Person } from "@/lib/types";
 
 export default function PeopleManager({
@@ -106,7 +107,12 @@ export default function PeopleManager({
             </div>
           ) : (
             <>
-              <span>{p.name}</span>
+              <span>
+                {p.name}
+                <span className="pay-to">
+                  {formatPaymentPref(p.paymentMethod, p.paymentHandle) ?? "No payment info yet"}
+                </span>
+              </span>
               <div className="expense-actions">
                 <button onClick={() => startEdit(p)}>Rename</button>
                 <button className="danger" onClick={() => handleDelete(p.id, p.name)} disabled={busy}>

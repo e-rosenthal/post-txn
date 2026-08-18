@@ -7,6 +7,7 @@ import AddEntryForm from "@/components/AddEntryForm";
 import ExpenseList from "@/components/ExpenseList";
 import BalancesView from "@/components/BalancesView";
 import PaymentsList from "@/components/PaymentsList";
+import PaymentPrefs from "@/components/PaymentPrefs";
 import { fetchJson } from "@/lib/fetchJson";
 import type { ExpenseWithSplits, NetBalance, Payment, Person, Settlement } from "@/lib/types";
 
@@ -121,7 +122,14 @@ export default function Home() {
       </div>
 
       <AddEntryForm people={people} meId={me.id} onCreated={refresh} />
-      <BalancesView settlements={settlements} balances={balances} expenses={expenses} meId={me.id} />
+      <BalancesView
+        settlements={settlements}
+        balances={balances}
+        expenses={expenses}
+        people={people}
+        meId={me.id}
+      />
+      <PaymentPrefs me={me} onSaved={refresh} />
       <PaymentsList payments={payments} onDeleted={refresh} />
       <ExpenseList expenses={expenses} meId={me.id} onDeleted={refresh} />
     </div>

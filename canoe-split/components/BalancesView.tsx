@@ -1,7 +1,7 @@
 "use client";
 
-import { formatMoney } from "@/lib/format";
-import type { ExpenseWithSplits, NetBalance, Settlement } from "@/lib/types";
+import { formatMoney, formatPaymentPref } from "@/lib/format";
+import type { ExpenseWithSplits, NetBalance, Person, Settlement } from "@/lib/types";
 
 const SETTLED_THRESHOLD = 0.005;
 
@@ -9,11 +9,13 @@ export default function BalancesView({
   settlements,
   balances,
   expenses,
+  people,
   meId,
 }: {
   settlements: Settlement[];
   balances: NetBalance[];
   expenses: ExpenseWithSplits[];
+  people: Person[];
   meId: number;
 }) {
   const myNet = balances.find((b) => b.id === meId)?.net ?? 0;
@@ -49,10 +51,19 @@ export default function BalancesView({
         <>
           {settlements.map((s, i) => {
             const involvesMe = s.fromId === meId || s.toId === meId;
+            // Only surfaced on the row where you're the one paying — that's when you need it.
+            const recipient = people.find((p) => p.id === s.toId);
+            const payTo = s.fromId === meId ? formatPaymentPref(recipient?.paymentMethod ?? null, recipient?.paymentHandle ?? null) : null;
+
             return (
               <div key={i} className="balance-row">
                 <span>
                   <strong>{s.fromName}</strong> owes <strong>{s.toName}</strong>
+                  {s.fromId === meId && (
+                    <span className="pay-to">
+                      {payTo ? `Pay via ${payTo}` : `${s.toName} hasn't said how they'd like to be paid`}
+                    </span>
+                  )}
                 </span>
                 <span className="expense-amount" style={{ color: involvesMe ? "var(--accent)" : undefined }}>
                   {formatMoney(s.amount)}
