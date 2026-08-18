@@ -15,10 +15,13 @@ export default function PaymentsList({
 }) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  async function handleDelete(id: number) {
-    setDeletingId(id);
+  async function handleDelete(p: Payment) {
+    const label = `${p.fromName} paid ${p.toName} ${formatMoney(p.amount)}`;
+    if (!window.confirm(`Delete this payment — ${label}? This can't be undone.`)) return;
+
+    setDeletingId(p.id);
     try {
-      const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/expenses/${p.id}`, { method: "DELETE" });
       if (res.ok) await onDeleted();
     } finally {
       setDeletingId(null);
@@ -39,7 +42,7 @@ export default function PaymentsList({
             {p.note && <div className="expense-meta">{p.note}</div>}
             {showAddedInfo && <div className="expense-meta">{formatAdded(p.createdAt, p.addedByName)}</div>}
             <div className="expense-actions">
-              <button className="danger" onClick={() => handleDelete(p.id)} disabled={deletingId === p.id}>
+              <button className="danger" onClick={() => handleDelete(p)} disabled={deletingId === p.id}>
                 {deletingId === p.id ? "Removing…" : "Remove"}
               </button>
             </div>

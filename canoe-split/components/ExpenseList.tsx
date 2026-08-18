@@ -15,10 +15,12 @@ export default function ExpenseList({
 }) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  async function handleDelete(id: number) {
-    setDeletingId(id);
+  async function handleDelete(exp: ExpenseWithSplits) {
+    if (!window.confirm(`Delete "${exp.description}"? This can't be undone.`)) return;
+
+    setDeletingId(exp.id);
     try {
-      const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/expenses/${exp.id}`, { method: "DELETE" });
       if (res.ok) await onDeleted();
     } finally {
       setDeletingId(null);
@@ -56,7 +58,7 @@ export default function ExpenseList({
                 )}
                 <button
                   className="danger"
-                  onClick={() => handleDelete(exp.id)}
+                  onClick={() => handleDelete(exp)}
                   disabled={deletingId === exp.id}
                 >
                   {deletingId === exp.id ? "Removing…" : "Remove"}

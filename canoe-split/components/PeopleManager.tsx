@@ -67,7 +67,9 @@ export default function PeopleManager({
     }
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: number, name: string) {
+    if (!window.confirm(`Remove ${name} from the trip?`)) return;
+
     setBusy(true);
     setError(null);
     try {
@@ -107,7 +109,7 @@ export default function PeopleManager({
               <span>{p.name}</span>
               <div className="expense-actions">
                 <button onClick={() => startEdit(p)}>Rename</button>
-                <button className="danger" onClick={() => handleDelete(p.id)} disabled={busy}>
+                <button className="danger" onClick={() => handleDelete(p.id, p.name)} disabled={busy}>
                   Remove
                 </button>
               </div>

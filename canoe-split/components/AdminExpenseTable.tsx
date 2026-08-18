@@ -90,7 +90,9 @@ export default function AdminExpenseTable({
     }
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: number, description: string) {
+    if (!window.confirm(`Delete "${description}"? This can't be undone.`)) return;
+
     setBusy(true);
     setError(null);
     try {
@@ -175,7 +177,7 @@ export default function AdminExpenseTable({
                 <div className="expense-meta">{formatAdded(exp.createdAt, exp.addedByName)}</div>
                 <div className="expense-actions">
                   <button onClick={() => startEdit(exp)}>Edit</button>
-                  <button className="danger" onClick={() => handleDelete(exp.id)} disabled={busy}>
+                  <button className="danger" onClick={() => handleDelete(exp.id, exp.description)} disabled={busy}>
                     Delete
                   </button>
                 </div>

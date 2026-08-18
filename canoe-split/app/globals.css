@@ -304,6 +304,25 @@ input[type="file"] {
   padding: 8px 0;
 }
 
+.balance-summary {
+  font-size: 19px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.balance-totals {
+  font-size: 13px;
+  margin-top: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.balance-note {
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 10px;
+}
+
 .tag {
   display: inline-block;
   font-size: 12px;

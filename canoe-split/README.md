@@ -10,7 +10,8 @@ No accounts, no passwords: everyone opens the same link and picks their name fro
 - **Add something**: one form at the top with a toggle between two modes.
   - **Shared expense** — description, amount, who paid, who it's split between (defaults to everyone, with "Everyone" / "Just the payer" shortcuts), optional receipt photo.
   - **Paying someone back** — who paid, who received it, amount, optional note. Settles an existing balance instead of adding a new shared cost.
-- **Who owes who**: computed automatically from every expense, then reduced to the minimum number of payments (e.g. if Bob owes Alice $10 and Alice owes Carol $10, it just shows Bob owes Carol $10 — Alice's already settled inside the math and never has to touch money).
+- **Who owes who**: leads with your own position ("You're owed $45 overall") plus the trip total and your share, then lists the payments needed — reduced to the minimum number (e.g. if Bob owes Alice $10 and Alice owes Carol $10, it just shows Bob owes Carol $10 — Alice is already settled inside the math and never has to touch money).
+- Deleting anything asks for confirmation first, since there's no undo.
 - Anyone can add or remove an expense.
 - Payments appear in their own "Payments" list, separate from the expenses list, so trip costs and settling-up never get mixed together. Delete one the same way you'd delete an expense if it was entered by mistake.
 - **Trip settings** (`/admin`, linked from the header as "Trip settings"): rename the trip, add/rename/remove people, bulk-import expenses from a CSV, and edit or delete any expense. This page isn't password-protected — it's reachable by anyone with the app link, same trust model as the rest of the app. Say the word if you'd rather it be locked behind a shared passcode.
