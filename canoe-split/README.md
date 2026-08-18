@@ -7,10 +7,12 @@ No accounts, no passwords: everyone opens the same link and picks their name fro
 ## How it works
 
 - **First person to open the link** adds everyone's name, then picks their own.
-- **Add an expense**: description, amount, who paid, who it's split between (defaults to everyone, with "Everyone" / "Just the payer" shortcuts), optional receipt photo.
+- **Add something**: one form at the top with a toggle between two modes.
+  - **Shared expense** — description, amount, who paid, who it's split between (defaults to everyone, with "Everyone" / "Just the payer" shortcuts), optional receipt photo.
+  - **Paying someone back** — who paid, who received it, amount, optional note. Settles an existing balance instead of adding a new shared cost.
 - **Who owes who**: computed automatically from every expense, then reduced to the minimum number of payments (e.g. if Bob owes Alice $10 and Alice owes Carol $10, it just shows Bob owes Carol $10 — Alice's already settled inside the math and never has to touch money).
 - Anyone can add or remove an expense.
-- **Record a payment**: paid someone back outside the app (cash, Venmo, etc.)? Log it under "Record a payment" on the main page — who paid, who received it, how much, optional note. It settles the balance shown above without adding a new shared cost, and shows up in its own "Payments" list, separate from the expenses list, so the two never get mixed up. Delete a logged payment the same way you'd delete an expense if it was entered by mistake.
+- Payments appear in their own "Payments" list, separate from the expenses list, so trip costs and settling-up never get mixed together. Delete one the same way you'd delete an expense if it was entered by mistake.
 - **Trip settings** (`/admin`, linked from the header as "Trip settings"): rename the trip, add/rename/remove people, bulk-import expenses from a CSV, and edit or delete any expense. This page isn't password-protected — it's reachable by anyone with the app link, same trust model as the rest of the app. Say the word if you'd rather it be locked behind a shared passcode.
 
 ## Importing expenses from a CSV
