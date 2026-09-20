@@ -6,7 +6,6 @@ import { buildSummaries, streaks, totals, weekRange } from "@/lib/stats";
 import { useToday } from "@/lib/useToday";
 import { TYPE_META, TYPE_ORDER } from "@/lib/workoutMeta";
 import { useAppData } from "./AppData";
-import { ConsistencyGrid } from "./ConsistencyGrid";
 import { WeeklyChart } from "./WeeklyChart";
 import { Banner, Button, Card, Icon, SectionTitle } from "./ui";
 
@@ -16,7 +15,7 @@ const RANGES = [
   { label: "1 year", weeks: 52 },
 ];
 
-export function HistoryView() {
+export function StatsView() {
   const { ready, error, workouts, settings } = useAppData();
   const today = useToday();
   const [range, setRange] = useState(12);
@@ -32,7 +31,7 @@ export function HistoryView() {
     };
   }, [workouts, currentWeek, range, settings.goals]);
 
-  if (!ready || !currentWeek) return <LoadingHistory />;
+  if (!ready || !currentWeek) return <LoadingStats />;
 
   const streak = streaks(allSummaries, currentWeek);
   const stats = totals(allSummaries, currentWeek);
@@ -43,8 +42,10 @@ export function HistoryView() {
       {error ? <Banner>{error}</Banner> : null}
 
       <header>
-        <h1 className="text-lg font-semibold tracking-tight">Over time</h1>
-        <p className="text-sm text-ink-2">Every session you have ticked off, week by week.</p>
+        <h1 className="text-lg font-semibold tracking-tight">Stats</h1>
+        <p className="text-sm text-ink-2">
+          The totals and trends behind the consistency grid on your home screen.
+        </p>
       </header>
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -99,14 +100,6 @@ export function HistoryView() {
             <WeeklyChart summaries={summaries} />
             <p className="mt-3 text-[11px] text-ink-3">
               Strides tacked onto a run are counted with that run, so each bar is a true session count.
-            </p>
-          </Card>
-
-          <Card className="p-4">
-            <SectionTitle hint="Filled means the goal was met">Consistency</SectionTitle>
-            <ConsistencyGrid summaries={summaries} />
-            <p className="mt-3 text-[11px] text-ink-3">
-              {formatWeekRange(summaries[0]?.weekStart ?? currentWeek)} → {formatWeekRange(currentWeek)}
             </p>
           </Card>
         </>
@@ -185,7 +178,7 @@ function WeekTable({ summaries }: { summaries: ReturnType<typeof buildSummaries>
   );
 }
 
-function LoadingHistory() {
+function LoadingStats() {
   return (
     <div className="flex flex-col gap-6" aria-busy="true">
       <div className="h-8 w-40 animate-pulse rounded-lg bg-sunken" />

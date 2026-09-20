@@ -1,5 +1,5 @@
-import { WeekView } from "@/components/WeekView";
+import { HomeView } from "@/components/HomeView";
 
-export default function WeekPage() {
-  return <WeekView />;
+export default function HomePage() {
+  return <HomeView />;
 }

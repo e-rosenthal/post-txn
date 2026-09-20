@@ -13,16 +13,22 @@ export function isWorkoutType(v: unknown): v is WorkoutType {
   return typeof v === "string" && (WORKOUT_TYPES as readonly string[]).includes(v);
 }
 
+/**
+ * A session belongs to a WEEK, not a day. You plan "one long run and one
+ * threshold this week" and tick them off whenever you actually get them done —
+ * which is the only way a training week survives contact with a newborn.
+ */
 export type Workout = {
   id: string;
-  /** Local calendar day, `YYYY-MM-DD`. Never a timestamp — no timezone math. */
-  date: string;
+  /** Monday of the week this session belongs to, `YYYY-MM-DD`. */
+  weekStart: string;
   type: WorkoutType;
   title: string;
   detail: string;
-  /** Strides tacked onto this session (they usually ride along with an easy run). */
+  /** Strides tacked onto this session — they usually ride along with an easy run. */
   strides: boolean;
   done: boolean;
+  /** When it got ticked off. Recorded, but never something you have to plan. */
   doneAt: string | null;
   position: number;
 };
@@ -31,14 +37,12 @@ export type NewWorkout = Omit<Workout, "id" | "doneAt"> & Partial<Pick<Workout, 
 
 export type WorkoutPatch = Partial<Omit<Workout, "id">>;
 
-/** `min` is the week's commitment, `stretch` is the good-week bonus. */
+/** `min` is the week's commitment, `stretch` is the good-week number. */
 export type Goal = { min: number; stretch: number };
 export type Goals = Record<WorkoutType, Goal>;
 
 export type TemplateItem = {
   id: string;
-  /** 0 = Monday … 6 = Sunday */
-  day: number;
   type: WorkoutType;
   title: string;
   detail: string;
@@ -46,7 +50,6 @@ export type TemplateItem = {
 };
 
 export type Settings = {
-  athlete: string;
   goals: Goals;
   template: TemplateItem[];
 };
@@ -61,16 +64,15 @@ export const DEFAULT_GOALS: Goals = {
 };
 
 export const DEFAULT_TEMPLATE: TemplateItem[] = [
-  { id: "t1", day: 0, type: "strength", title: "Strength", detail: "Lower body + core", strides: false },
-  { id: "t2", day: 1, type: "threshold", title: "Threshold", detail: "4 x 6 min @ threshold, 2 min float", strides: false },
-  { id: "t3", day: 2, type: "easy", title: "Easy run", detail: "Conversational", strides: true },
-  { id: "t4", day: 3, type: "strength", title: "Strength", detail: "Upper body + hips", strides: false },
-  { id: "t5", day: 4, type: "easy", title: "Easy run", detail: "Conversational", strides: false },
-  { id: "t6", day: 5, type: "long", title: "Long run", detail: "Steady, all easy", strides: false },
+  { id: "t1", type: "long", title: "Long run", detail: "", strides: false },
+  { id: "t2", type: "threshold", title: "Threshold", detail: "", strides: false },
+  { id: "t3", type: "easy", title: "Easy run", detail: "", strides: true },
+  { id: "t4", type: "easy", title: "Easy run", detail: "", strides: false },
+  { id: "t5", type: "strength", title: "Strength", detail: "Bands — upper body", strides: false },
+  { id: "t6", type: "strength", title: "Strength", detail: "Bands — upper body", strides: false },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
-  athlete: "",
   goals: DEFAULT_GOALS,
   template: DEFAULT_TEMPLATE,
 };

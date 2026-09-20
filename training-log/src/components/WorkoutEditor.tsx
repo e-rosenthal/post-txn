@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatLong } from "@/lib/dates";
 import { WORKOUT_TYPES, type Workout, type WorkoutType } from "@/lib/types";
 import { TYPE_META } from "@/lib/workoutMeta";
 import { Button, Icon, Toggle, TypeChip } from "./ui";
 
-export type EditorTarget =
-  | { mode: "create"; date: string }
-  | { mode: "edit"; workout: Workout };
+export type EditorTarget = { mode: "create" } | { mode: "edit"; workout: Workout };
 
 export type EditorValues = {
-  date: string;
   type: WorkoutType;
   title: string;
   detail: string;
@@ -21,24 +17,26 @@ export type EditorValues = {
 
 function initialValues(target: EditorTarget): EditorValues {
   if (target.mode === "edit") {
-    const { date, type, title, detail, strides, done } = target.workout;
-    return { date, type, title, detail, strides, done };
+    const { type, title, detail, strides, done } = target.workout;
+    return { type, title, detail, strides, done };
   }
-  return { date: target.date, type: "easy", title: "", detail: "", strides: false, done: false };
+  return { type: "easy", title: "", detail: "", strides: false, done: false };
 }
 
 /**
  * Mounted only while something is being edited, and keyed on the target by the
  * caller — so the form state comes from the initial props and never has to be
- * re-synced from an effect.
+ * re-synced from an effect. There is no day picker: sessions belong to a week.
  */
 export function WorkoutEditor({
   target,
+  weekLabel,
   onClose,
   onSave,
   onDelete,
 }: {
   target: EditorTarget;
+  weekLabel: string;
   onClose: () => void;
   onSave: (values: EditorValues) => void;
   onDelete?: (workout: Workout) => void;
@@ -64,7 +62,6 @@ export function WorkoutEditor({
       className="m-auto w-[min(34rem,calc(100vw-2rem))] rounded-2xl border border-hair bg-surface p-0 text-ink backdrop:backdrop-blur-[2px]"
     >
       <form
-        method="dialog"
         onSubmit={(event) => {
           event.preventDefault();
           onSave({ ...values, title: values.title.trim() || meta.defaultTitle });
@@ -76,14 +73,14 @@ export function WorkoutEditor({
             <h2 className="text-base font-semibold">
               {target.mode === "edit" ? "Edit session" : "Add a session"}
             </h2>
-            <p className="text-xs text-ink-3">{formatLong(values.date)}</p>
+            <p className="text-xs text-ink-3">{weekLabel}</p>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={onClose} aria-label="Close">
             <Icon name="close" />
           </Button>
         </header>
 
-        <fieldset className="flex flex-col gap-2">
+        <fieldset>
           <legend className="mb-2 text-[13px] font-medium text-ink-2">Type</legend>
           <div className="flex flex-wrap gap-1.5">
             {WORKOUT_TYPES.map((type) => (
@@ -127,11 +124,6 @@ export function WorkoutEditor({
           />
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-ink-2">Day</span>
-          <input type="date" value={values.date} onChange={(event) => set("date", event.target.value)} />
-        </label>
-
         <div className="flex flex-col gap-2">
           {meta.canCarryStrides ? (
             <Toggle
@@ -151,13 +143,7 @@ export function WorkoutEditor({
 
         <footer className="flex items-center justify-between gap-2 pt-1">
           {target.mode === "edit" && onDelete ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(target.workout)}
-              aria-label="Delete session"
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={() => onDelete(target.workout)}>
               <Icon name="trash" />
               Delete
             </Button>

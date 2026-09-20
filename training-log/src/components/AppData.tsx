@@ -24,6 +24,11 @@ type ApplyOptions = {
   replace?: boolean;
 };
 
+type ImportWeek = {
+  weekStart: string;
+  sessions: { type: Workout["type"]; title: string; detail: string; strides: boolean }[];
+};
+
 type AppDataValue = {
   ready: boolean;
   error: string | null;
@@ -36,6 +41,7 @@ type AppDataValue = {
   removeWorkout: (id: string) => Promise<void>;
   saveSettings: (settings: Settings) => Promise<void>;
   applyWeek: (options: ApplyOptions) => Promise<void>;
+  importPlan: (weeks: ImportWeek[], replace: boolean) => Promise<{ created: number; removed: number }>;
   reload: () => Promise<void>;
 };
 
@@ -55,7 +61,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 function sortWorkouts(list: Workout[]): Workout[] {
-  return [...list].sort((a, b) => a.date.localeCompare(b.date) || a.position - b.position);
+  return [...list].sort((a, b) => a.weekStart.localeCompare(b.weekStart) || a.position - b.position);
 }
 
 type Snapshot = { workouts: Workout[]; settings: Settings; backend: string };
@@ -112,7 +118,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const addWorkout = useCallback<AppDataValue["addWorkout"]>(async (input) => {
     const draft: Workout = {
       id: `temp-${Math.random().toString(36).slice(2)}`,
-      date: input.date,
+      weekStart: input.weekStart,
       type: input.type,
       title: input.title ?? "",
       detail: input.detail ?? "",
@@ -194,6 +200,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }, [settings]);
 
+  const importPlan = useCallback<AppDataValue["importPlan"]>(async (weeks, replace) => {
+    const result = await request<{ created: number; removed: number }>("/api/weeks/import", {
+      method: "POST",
+      body: JSON.stringify({ weeks, replace }),
+    });
+    await reload();
+    return result;
+  }, [reload]);
+
   const applyWeek = useCallback<AppDataValue["applyWeek"]>(async (options) => {
     try {
       await request("/api/weeks/apply", { method: "POST", body: JSON.stringify(options) });
@@ -215,9 +230,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       removeWorkout,
       saveSettings,
       applyWeek,
+      importPlan,
       reload,
     }),
-    [ready, error, workouts, settings, backend, addWorkout, patchWorkout, removeWorkout, saveSettings, applyWeek, reload],
+    [ready, error, workouts, settings, backend, addWorkout, patchWorkout, removeWorkout, saveSettings, applyWeek, importPlan, reload],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

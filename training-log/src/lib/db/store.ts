@@ -5,8 +5,8 @@ export interface Store {
   createWorkouts(inputs: NewWorkout[]): Promise<Workout[]>;
   updateWorkout(id: string, patch: WorkoutPatch): Promise<Workout | null>;
   deleteWorkout(id: string): Promise<boolean>;
-  /** Used when re-applying a plan to a week; never touches completed sessions. */
-  deletePlannedInRange(from: string, to: string): Promise<number>;
+  /** Used when re-applying a plan; never touches sessions already ticked off. */
+  deletePlannedInWeeks(weekStarts: string[]): Promise<number>;
   getSettings(): Promise<Settings>;
   saveSettings(settings: Settings): Promise<Settings>;
 }
@@ -20,7 +20,7 @@ export function newId(): string {
 export function normalizeWorkout(input: NewWorkout): Workout {
   return {
     id: input.id ?? newId(),
-    date: input.date,
+    weekStart: input.weekStart,
     type: input.type,
     title: (input.title ?? "").trim(),
     detail: (input.detail ?? "").trim(),

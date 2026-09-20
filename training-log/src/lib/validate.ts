@@ -1,3 +1,4 @@
+import { startOfWeek } from "./dates";
 import {
   DEFAULT_SETTINGS,
   WORKOUT_TYPES,
@@ -13,7 +14,7 @@ export class BadRequest extends Error {}
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export function assertDate(value: unknown, field = "date"): string {
+export function assertDate(value: unknown, field = "weekStart"): string {
   if (typeof value !== "string" || !ISO_DATE.test(value)) {
     throw new BadRequest(`${field} must be a YYYY-MM-DD string`);
   }
@@ -35,7 +36,7 @@ export function parseNewWorkout(body: unknown): NewWorkout {
   const b = body as Record<string, unknown>;
   if (!isWorkoutType(b.type)) throw new BadRequest("unknown workout type");
   return {
-    date: assertDate(b.date),
+    weekStart: startOfWeek(assertDate(b.weekStart)),
     type: b.type,
     title: str(b.title, 120),
     detail: str(b.detail, 1000),
@@ -49,7 +50,7 @@ export function parsePatch(body: unknown): WorkoutPatch {
   if (typeof body !== "object" || body === null) throw new BadRequest("expected an object");
   const b = body as Record<string, unknown>;
   const patch: WorkoutPatch = {};
-  if (b.date !== undefined) patch.date = assertDate(b.date);
+  if (b.weekStart !== undefined) patch.weekStart = startOfWeek(assertDate(b.weekStart));
   if (b.type !== undefined) {
     if (!isWorkoutType(b.type)) throw new BadRequest("unknown workout type");
     patch.type = b.type;
@@ -83,7 +84,6 @@ function parseTemplate(value: unknown): TemplateItem[] {
     return [
       {
         id: str(item.id, 40) || `t${i}`,
-        day: int(item.day, 0, 0, 6),
         type: item.type,
         title: str(item.title, 120),
         detail: str(item.detail, 1000),
@@ -93,12 +93,31 @@ function parseTemplate(value: unknown): TemplateItem[] {
   });
 }
 
+/** One week of an imported plan: a Monday plus the sessions to create in it. */
+export function parseImportWeek(body: unknown): { weekStart: string; sessions: NewWorkout[] } {
+  if (typeof body !== "object" || body === null) throw new BadRequest("expected a week object");
+  const b = body as Record<string, unknown>;
+  const weekStart = startOfWeek(assertDate(b.weekStart));
+  if (!Array.isArray(b.sessions)) throw new BadRequest("a week needs a sessions array");
+  const sessions = b.sessions.slice(0, 40).map((raw, position): NewWorkout => {
+    if (typeof raw !== "object" || raw === null) throw new BadRequest("expected a session object");
+    const session = raw as Record<string, unknown>;
+    if (!isWorkoutType(session.type)) throw new BadRequest("unknown workout type");
+    return {
+      weekStart,
+      type: session.type,
+      title: str(session.title, 120),
+      detail: str(session.detail, 1000),
+      strides: Boolean(session.strides),
+      done: false,
+      position,
+    };
+  });
+  return { weekStart, sessions };
+}
+
 export function parseSettings(body: unknown): Settings {
   if (typeof body !== "object" || body === null) throw new BadRequest("expected an object");
   const b = body as Record<string, unknown>;
-  return {
-    athlete: str(b.athlete, 60),
-    goals: parseGoals(b.goals),
-    template: parseTemplate(b.template),
-  };
+  return { goals: parseGoals(b.goals), template: parseTemplate(b.template) };
 }

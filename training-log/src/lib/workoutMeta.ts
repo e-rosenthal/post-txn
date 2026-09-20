@@ -51,9 +51,9 @@ export const TYPE_META: Record<WorkoutType, TypeMeta> = {
     short: "Strength",
     color: "var(--type-strength)",
     defaultTitle: "Strength",
-    defaultDetail: "",
+    defaultDetail: "Bands — upper body",
     canCarryStrides: false,
-    blurb: "Lift, hinge, carry",
+    blurb: "Mostly bands, upper body",
   },
   strides: {
     label: "Strides",

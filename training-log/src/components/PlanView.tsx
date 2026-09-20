@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { DAY_NAMES_LONG } from "@/lib/dates";
 import {
   DEFAULT_SETTINGS,
   WORKOUT_TYPES,
@@ -11,6 +10,7 @@ import {
 } from "@/lib/types";
 import { TYPE_META } from "@/lib/workoutMeta";
 import { useAppData } from "./AppData";
+import { CsvImport } from "./CsvImport";
 import { TemplateItemEditor } from "./TemplateItemEditor";
 import { Banner, Button, Card, Icon, SectionTitle, TypeDot } from "./ui";
 
@@ -37,10 +37,12 @@ export function PlanView() {
 
   function upsertTemplateItem(item: TemplateItem) {
     const exists = settings.template.some((t) => t.id === item.id);
-    const template = exists
-      ? settings.template.map((t) => (t.id === item.id ? item : t))
-      : [...settings.template, item];
-    void saveSettings({ ...settings, template });
+    void saveSettings({
+      ...settings,
+      template: exists
+        ? settings.template.map((t) => (t.id === item.id ? item : t))
+        : [...settings.template, item],
+    });
     setEditing(null);
   }
 
@@ -55,10 +57,10 @@ export function PlanView() {
 
       <header>
         <h1 className="text-lg font-semibold tracking-tight">Your plan</h1>
-        <p className="text-sm text-ink-2">
-          What a normal week looks like. Changes save as you make them.
-        </p>
+        <p className="text-sm text-ink-2">Everything here saves as you change it.</p>
       </header>
+
+      <CsvImport />
 
       <Card className="p-4">
         <SectionTitle hint="Goal / stretch">Weekly goals</SectionTitle>
@@ -73,9 +75,7 @@ export function PlanView() {
                 <span className="flex min-w-0 items-center gap-2">
                   <TypeDot type={type} />
                   <span className="truncate text-sm text-ink">{TYPE_META[type].label}</span>
-                  {goal.min === 0 ? (
-                    <span className="text-[11px] text-ink-3">not tracked</span>
-                  ) : null}
+                  {goal.min === 0 ? <span className="text-[11px] text-ink-3">not tracked</span> : null}
                 </span>
                 <span className="flex items-center gap-3">
                   <Stepper
@@ -83,7 +83,7 @@ export function PlanView() {
                     value={goal.min}
                     onChange={(min) => setGoal(type, { ...goal, min })}
                   />
-                  <span className="text-ink-3">–</span>
+                  <span className="text-[11px] text-ink-3">to</span>
                   <Stepper
                     label={`${TYPE_META[type].label} stretch`}
                     value={goal.stretch}
@@ -95,8 +95,9 @@ export function PlanView() {
           })}
         </ul>
         <p className="mt-3 text-[11px] text-ink-3">
-          Goal is the number you commit to; stretch is the good-week number. A run with strides
-          counts toward both that run&apos;s goal and the strides goal.
+          Goal is the number you commit to; stretch is the good-week number. These drive the
+          consistency grid on the home screen. A run with strides counts toward both that run&apos;s
+          goal and the strides goal.
         </p>
       </Card>
 
@@ -119,50 +120,39 @@ export function PlanView() {
           Template week
         </SectionTitle>
 
-        <ul className="flex flex-col">
-          {DAY_NAMES_LONG.map((name, day) => {
-            const items = settings.template.filter((t) => t.day === day);
-            return (
-              <li key={name} className="flex gap-3 border-t border-hair py-2 first:border-t-0">
-                <span className="w-24 flex-none pt-1.5 text-[13px] font-medium text-ink">{name}</span>
-                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                  {items.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setEditing(item)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-hair px-2.5 py-1 text-[13px] text-ink transition-colors hover:bg-sunken"
-                      style={{ borderLeft: `3px solid ${TYPE_META[item.type].color}` }}
-                    >
-                      {item.title || TYPE_META[item.type].defaultTitle}
-                      {item.strides ? <span className="text-[11px] text-ink-3">+ strides</span> : null}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEditing({
-                        id: `t${Date.now().toString(36)}`,
-                        day,
-                        type: "easy",
-                        title: "",
-                        detail: "",
-                        strides: false,
-                      })
-                    }
-                    aria-label={`Add a template session on ${name}`}
-                    className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[13px] text-ink-3 transition-colors hover:bg-sunken hover:text-ink"
-                  >
-                    <Icon name="plus" className="h-3.5 w-3.5" />
-                    {items.length === 0 ? "Rest day" : "Add"}
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {settings.template.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setEditing(item)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-hair py-1 pr-2.5 pl-2 text-[13px] text-ink transition-colors hover:bg-sunken"
+              style={{ borderLeft: `3px solid ${TYPE_META[item.type].color}` }}
+            >
+              {item.title || TYPE_META[item.type].defaultTitle}
+              {item.strides ? <span className="text-[11px] text-ink-3">+ strides</span> : null}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() =>
+              setEditing({
+                id: `t${Date.now().toString(36)}`,
+                type: "easy",
+                title: "",
+                detail: "",
+                strides: false,
+              })
+            }
+            className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[13px] text-ink-3 transition-colors hover:bg-sunken hover:text-ink"
+          >
+            <Icon name="plus" className="h-3.5 w-3.5" />
+            Add
+          </button>
+        </div>
         <p className="mt-3 text-[11px] text-ink-3">
-          The Week tab&apos;s &ldquo;Fill from my template&rdquo; button drops this into any week.
+          A default week for when you have not imported a plan — the home screen&apos;s &ldquo;Use my
+          template&rdquo; button drops this into any week.
         </p>
       </Card>
 

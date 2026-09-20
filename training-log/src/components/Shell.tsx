@@ -6,9 +6,9 @@ import type { ReactNode } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 
 const TABS = [
-  { href: "/", label: "Week" },
-  { href: "/history", label: "Over time" },
+  { href: "/", label: "This week" },
   { href: "/plan", label: "Plan" },
+  { href: "/stats", label: "Stats" },
 ];
 
 export function Shell({ children }: { children: ReactNode }) {

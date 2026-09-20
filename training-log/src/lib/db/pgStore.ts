@@ -36,8 +36,9 @@ function db(): Sql {
 }
 
 /**
- * `date` is stored as text on purpose: the app deals in calendar days, and text
- * ISO dates sort correctly while never being re-interpreted in a server timezone.
+ * `week_start` is stored as text on purpose: the app deals in calendar weeks,
+ * and text ISO dates sort correctly while never being re-interpreted in a
+ * server timezone.
  */
 function ensureSchema(): Promise<void> {
   globalForSql.__trainingLogReady ??= (async () => {
@@ -45,7 +46,7 @@ function ensureSchema(): Promise<void> {
     await sql`
       create table if not exists workouts (
         id text primary key,
-        date text not null,
+        week_start text not null,
         type text not null,
         title text not null default '',
         detail text not null default '',
@@ -56,7 +57,24 @@ function ensureSchema(): Promise<void> {
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now()
       )`;
-    await sql`create index if not exists workouts_date_idx on workouts (date)`;
+    // Migrate a database created before planning moved from days to weeks.
+    await sql`
+      do $$
+      begin
+        if exists (
+          select 1 from information_schema.columns
+          where table_name = 'workouts' and column_name = 'date'
+        ) then
+          alter table workouts add column if not exists week_start text;
+          update workouts
+            set week_start = to_char(date_trunc('week', date::date), 'YYYY-MM-DD')
+            where week_start is null;
+          alter table workouts alter column week_start set not null;
+          alter table workouts drop column date;
+        end if;
+      end
+      $$;`;
+    await sql`create index if not exists workouts_week_idx on workouts (week_start)`;
     await sql`
       create table if not exists settings (
         key text primary key,
@@ -73,7 +91,7 @@ function ensureSchema(): Promise<void> {
 
 type Row = {
   id: string;
-  date: string;
+  weekStart: string;
   type: Workout["type"];
   title: string;
   detail: string;
@@ -86,7 +104,7 @@ type Row = {
 function toWorkout(row: Row): Workout {
   return {
     id: row.id,
-    date: row.date,
+    weekStart: row.weekStart,
     type: row.type,
     title: row.title,
     detail: row.detail,
@@ -97,7 +115,7 @@ function toWorkout(row: Row): Workout {
   };
 }
 
-const COLUMNS = ["id", "date", "type", "title", "detail", "strides", "done", "doneAt", "position"] as const;
+const COLUMNS = ["id", "weekStart", "type", "title", "detail", "strides", "done", "doneAt", "position"] as const;
 
 export const pgStore: Store = {
   async listWorkouts(range) {
@@ -106,11 +124,11 @@ export const pgStore: Store = {
     const from = range?.from ?? null;
     const to = range?.to ?? null;
     const rows = await sql<Row[]>`
-      select id, date, type, title, detail, strides, done, done_at, position
+      select id, week_start, type, title, detail, strides, done, done_at, position
       from workouts
-      where (${from}::text is null or date >= ${from})
-        and (${to}::text is null or date <= ${to})
-      order by date asc, position asc`;
+      where (${from}::text is null or week_start >= ${from})
+        and (${to}::text is null or week_start <= ${to})
+      order by week_start asc, position asc`;
     return rows.map(toWorkout);
   },
 
@@ -121,7 +139,7 @@ export const pgStore: Store = {
     const records = inputs.map(normalizeWorkout);
     const rows = await sql<Row[]>`
       insert into workouts ${sql(records, ...COLUMNS)}
-      returning id, date, type, title, detail, strides, done, done_at, position`;
+      returning id, week_start, type, title, detail, strides, done, done_at, position`;
     return rows.map(toWorkout);
   },
 
@@ -135,7 +153,7 @@ export const pgStore: Store = {
     const keys = COLUMNS.filter((c) => c !== "id" && c in fields);
     if (keys.length === 0) {
       const [existing] = await sql<Row[]>`
-        select id, date, type, title, detail, strides, done, done_at, position
+        select id, week_start, type, title, detail, strides, done, done_at, position
         from workouts where id = ${id}`;
       return existing ? toWorkout(existing) : null;
     }
@@ -143,7 +161,7 @@ export const pgStore: Store = {
       update workouts
       set ${sql(fields, ...keys)}, updated_at = now()
       where id = ${id}
-      returning id, date, type, title, detail, strides, done, done_at, position`;
+      returning id, week_start, type, title, detail, strides, done, done_at, position`;
     return row ? toWorkout(row) : null;
   },
 
@@ -154,12 +172,13 @@ export const pgStore: Store = {
     return rows.length > 0;
   },
 
-  async deletePlannedInRange(from: string, to: string) {
+  async deletePlannedInWeeks(weekStarts: string[]) {
+    if (weekStarts.length === 0) return 0;
     await ensureSchema();
     const sql = db();
     const rows = await sql`
       delete from workouts
-      where done = false and date >= ${from} and date <= ${to}
+      where done = false and week_start in ${sql(weekStarts)}
       returning id`;
     return rows.length;
   },

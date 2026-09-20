@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DAY_NAMES_LONG } from "@/lib/dates";
 import { WORKOUT_TYPES, type TemplateItem } from "@/lib/types";
 import { TYPE_META } from "@/lib/workoutMeta";
 import { Button, Icon, Toggle, TypeChip } from "./ui";
@@ -69,20 +68,6 @@ export function TemplateItemEditor({
             ))}
           </div>
         </fieldset>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-medium text-ink-2">Day</span>
-          <select
-            value={draft.day}
-            onChange={(event) => setDraft({ ...draft, day: Number(event.target.value) })}
-          >
-            {DAY_NAMES_LONG.map((name, index) => (
-              <option key={name} value={index}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-[13px] font-medium text-ink-2">Name</span>

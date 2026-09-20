@@ -49,13 +49,13 @@ function withLock<T>(fn: (data: Shape) => Promise<T> | T): Promise<T> {
 }
 
 function inRange(w: Workout, from?: string, to?: string) {
-  if (from && w.date < from) return false;
-  if (to && w.date > to) return false;
+  if (from && w.weekStart < from) return false;
+  if (to && w.weekStart > to) return false;
   return true;
 }
 
 function sortWorkouts(list: Workout[]) {
-  return list.sort((a, b) => a.date.localeCompare(b.date) || a.position - b.position);
+  return list.sort((a, b) => a.weekStart.localeCompare(b.weekStart) || a.position - b.position);
 }
 
 export const fileStore: Store = {
@@ -92,10 +92,11 @@ export const fileStore: Store = {
     });
   },
 
-  async deletePlannedInRange(from: string, to: string) {
+  async deletePlannedInWeeks(weekStarts: string[]) {
+    const targets = new Set(weekStarts);
     return withLock((data) => {
       const before = data.workouts.length;
-      data.workouts = data.workouts.filter((w) => w.done || !inRange(w, from, to));
+      data.workouts = data.workouts.filter((w) => w.done || !targets.has(w.weekStart));
       return before - data.workouts.length;
     });
   },

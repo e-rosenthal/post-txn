@@ -1,4 +1,4 @@
-import { addDays, startOfWeek, weeksBetween } from "./dates";
+import { addDays, weeksBetween } from "./dates";
 import { TYPE_ORDER } from "./workoutMeta";
 import type { Goals, Workout, WorkoutType } from "./types";
 
@@ -39,10 +39,9 @@ export type WeekSummary = {
 export function groupByWeek(workouts: Workout[]): Map<string, Workout[]> {
   const map = new Map<string, Workout[]>();
   for (const w of workouts) {
-    const key = startOfWeek(w.date);
-    const bucket = map.get(key);
+    const bucket = map.get(w.weekStart);
     if (bucket) bucket.push(w);
-    else map.set(key, [w]);
+    else map.set(w.weekStart, [w]);
   }
   return map;
 }
@@ -84,8 +83,7 @@ export function weekRange(
 ): string[] {
   let first = currentWeek;
   for (const w of workouts) {
-    const ws = startOfWeek(w.date);
-    if (ws < first) first = ws;
+    if (w.weekStart < first) first = w.weekStart;
   }
   const span = weeksBetween(first, currentWeek) + 1;
   let count = limit ? Math.min(span, limit) : span;
