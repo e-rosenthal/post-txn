@@ -78,16 +78,29 @@ Open http://localhost:3000. With no `DATABASE_URL` set, everything is stored in
 
 ## Deploying it (free)
 
-The app needs a Postgres database. Both steps below are free tiers.
+The front end and the backend are the same deployment: Next.js serves the pages
+and the `/api` routes from one project. So there is one thing to deploy, plus a
+database to point it at. Both tiers below are free.
 
 ### Vercel + Neon
 
-1. Push this repo to GitHub.
-2. At [vercel.com/new](https://vercel.com/new), import the repo. **Set the Root
-   Directory to `training-log`** — the app lives in a subfolder.
-3. In the new project, go to **Storage → Create Database → Neon (Postgres)** and
-   attach it. Vercel injects `DATABASE_URL` for you.
-4. Redeploy. The tables are created on the first request.
+1. **Get the code on a branch Vercel will build.** Merge this branch into `main`
+   (or, in the Vercel project's Settings → Git, set the production branch to the
+   one you want).
+2. **Import the repo** at [vercel.com/new](https://vercel.com/new). In the import
+   screen, set **Root Directory** to `training-log` — the app lives in a subfolder,
+   and Vercel builds from the repo root unless you tell it otherwise. Framework
+   preset should auto-detect as Next.js.
+3. **Add the database.** In the project, open the **Storage** tab and add
+   **Neon** from the Vercel Marketplace. (Vercel's own Postgres was retired at the
+   end of 2024; existing databases were migrated to Neon, and Neon is now the
+   first-party Postgres option.) Neon has a free tier.
+4. Attaching it sets the environment variables for you, including `DATABASE_URL`
+   (a **pooled** connection) and `DATABASE_URL_UNPOOLED`. This app reads
+   `DATABASE_URL`, and it is built for the pooled one — prepared statements are
+   off, which is what transaction-mode poolers require.
+5. **Redeploy** so the build picks up the new variable. The tables are created on
+   the first request; there is no migration step to run.
 
 ### Anything else
 
@@ -99,8 +112,14 @@ DATABASE_URL="postgresql://user:password@host/dbname?sslmode=require"
 ```
 
 The connection string is all the app needs. It creates its own tables on first
-use, works with connection poolers (`prepare` is off), and adds `sslmode=require`
-automatically for non-local hosts.
+use, works with connection poolers, and adds `sslmode=require` automatically for
+non-local hosts.
+
+### A note on privacy
+
+There is no login. Anyone with the URL can read and edit the log. That is usually
+fine for a personal tracker on an unguessable Vercel URL, but it is a deliberate
+trade-off rather than an oversight — worth knowing before you share the link.
 
 ## How it stores things
 

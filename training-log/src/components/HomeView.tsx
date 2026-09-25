@@ -165,7 +165,7 @@ export function HomeView() {
         <SectionTitle hint="Filled means the goal was met">Consistency</SectionTitle>
         <ConsistencyGrid summaries={gridSummaries} />
         <p className="mt-3 text-[11px] text-ink-3">
-          Last {gridSummaries.length} weeks — this week is the column on the right.
+          Each column is one week. The last one is this week.
         </p>
       </Card>
 

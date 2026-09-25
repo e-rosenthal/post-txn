@@ -1,6 +1,6 @@
 "use client";
 
-import { formatWeekRange } from "@/lib/dates";
+import { formatShort, formatWeekRange, parseISO } from "@/lib/dates";
 import type { WeekSummary } from "@/lib/stats";
 import { TYPE_META } from "@/lib/workoutMeta";
 
@@ -41,8 +41,55 @@ export function ConsistencyGrid({ summaries }: { summaries: WeekSummary[] }) {
           })}
         />
       ))}
+
+      <WeekAxis weeks={summaries.map((s) => s.weekStart)} />
     </div>
   );
+}
+
+/**
+ * Dates under the columns so a cell can be placed without counting back from
+ * the right. Labelled where the month turns over, which keeps them sparse
+ * enough to read at phone width.
+ */
+function WeekAxis({ weeks }: { weeks: string[] }) {
+  const ticks = monthTicks(weeks);
+  return (
+    <div className="mt-1 flex items-start gap-2">
+      <span className="w-20 flex-none" aria-hidden="true" />
+      <div className="relative h-3.5 min-w-0 flex-1">
+        {ticks.map(({ index, label }) => {
+          // Anchor the last couple of labels to the right so they can't run off the edge.
+          const nearEnd = index > weeks.length - 3;
+          const position = nearEnd
+            ? { right: `${((weeks.length - 1 - index) / weeks.length) * 100}%` }
+            : { left: `${(index / weeks.length) * 100}%` };
+          return (
+            <span
+              key={index}
+              className="absolute top-0 whitespace-nowrap text-[10px] text-ink-3"
+              style={position}
+            >
+              {label}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function monthTicks(weeks: string[]): { index: number; label: string }[] {
+  const ticks: { index: number; label: string }[] = [];
+  weeks.forEach((weekStart, i) => {
+    const month = parseISO(weekStart).getUTCMonth();
+    const turnsOver = i > 0 && month !== parseISO(weeks[i - 1]).getUTCMonth();
+    if (i !== 0 && !turnsOver) return;
+    const previous = ticks[ticks.length - 1];
+    if (previous && i - previous.index < 2) return; // would collide with the last label
+    ticks.push({ index: i, label: formatShort(weekStart) });
+  });
+  return ticks;
 }
 
 type Cell = { key: string; level: number; color: string; title: string };
