@@ -15,19 +15,76 @@ type Sql = ReturnType<typeof postgres>;
 // open a new connection on every edit.
 const globalForSql = globalThis as unknown as { __trainingLogSql?: Sql; __trainingLogReady?: Promise<void> };
 
+/**
+ * libpq parameters that only mean something to the *client*. postgres.js forwards
+ * any query parameter it doesn't recognise to the server as a runtime setting, and
+ * Postgres then rejects it with "unrecognized configuration parameter" — so a
+ * perfectly valid connection string (Neon's includes `channel_binding`) fails to
+ * connect. Strip them before handing the URL over.
+ */
+const CLIENT_ONLY_PARAMS = [
+  "channel_binding",
+  "gssencmode",
+  "gsslib",
+  "krbsrvname",
+  "passfile",
+  "requiressl",
+  "service",
+  "sslcert",
+  "sslcompression",
+  "sslcrl",
+  "sslcrldir",
+  "sslkey",
+  "sslpassword",
+  "sslrootcert",
+  "sslsni",
+];
+
+function sanitize(raw: string): { url: string; verifyFull: boolean } {
+  try {
+    const parsed = new URL(raw);
+    // `sslrootcert=system` is how libpq asks for full verification. It has to be
+    // stripped like the rest, so carry its meaning across rather than silently
+    // dropping to a weaker check.
+    const verifyFull = parsed.searchParams.get("sslrootcert") === "system";
+    let stripped = false;
+    for (const key of CLIENT_ONLY_PARAMS) {
+      if (parsed.searchParams.has(key)) {
+        parsed.searchParams.delete(key);
+        stripped = true;
+      }
+    }
+    // Only rewrite when we actually removed something, so an untouched connection
+    // string is passed through byte for byte.
+    return { url: stripped ? parsed.toString() : raw, verifyFull };
+  } catch {
+    return { url: raw, verifyFull: false };
+  }
+}
+
 function connect(): Sql {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url);
-  const declaresSsl = /[?&]sslmode=/.test(url);
-  return postgres(url, {
-    ssl: !isLocal && !declaresSsl ? "require" : undefined,
+  const raw = process.env.DATABASE_URL;
+  if (!raw) throw new Error("DATABASE_URL is not set");
+  const { url, verifyFull } = sanitize(raw);
+
+  const base = {
     max: 3,
     idle_timeout: 20,
-    // Required for transaction-mode poolers (Supabase, pgbouncer).
+    // Required for transaction-mode poolers: Neon's pooled URL, Supabase, pgbouncer.
     prepare: false,
     transform: postgres.camel,
-  });
+  };
+
+  if (verifyFull) return postgres(url, { ...base, ssl: "verify-full" });
+
+  // postgres.js resolves each option with `key in options`, not a value check, so
+  // passing `ssl: undefined` SHADOWS an `sslmode` in the connection string and the
+  // connection silently goes out in plaintext — which hosted Postgres then refuses.
+  // Only name the key when we are the ones supplying the value.
+  const declaresSsl = /[?&]sslmode=/.test(url);
+  const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url);
+  if (declaresSsl || isLocal) return postgres(url, base);
+  return postgres(url, { ...base, ssl: "require" });
 }
 
 function db(): Sql {
