@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Design tokens.
+   Chrome + categorical series colours come from a validated palette: the six
+   workout hues clear the CVD, chroma, lightness and normal-vision gates in both
+   light and dark mode, in this exact order (it's also the chart stacking order,
+   so adjacent pairs are the validated ones). Dark is a selected set of steps for
+   the dark surface, not an automatic flip.
+--------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: light;
+
+  --plane: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-sunken: #f2f1ed;
+  --ink: #0b0b0b;
+  --ink-secondary: #52514e;
+  --ink-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --hairline: rgba(11, 11, 11, 0.1);
+  --hairline-strong: rgba(11, 11, 11, 0.16);
+  --good: #0ca30c;
+  --good-ink: #006300;
+
+  --type-long: #2a78d6;
+  --type-threshold: #eb6834;
+  --type-easy: #1baf7a;
+  --type-strength: #eda100;
+  --type-strides: #e87ba4;
+  --type-cross: #008300;
+
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04), 0 1px 12px rgba(11, 11, 11, 0.03);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+
+    --plane: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-sunken: #131312;
+    --ink: #ffffff;
+    --ink-secondary: #c3c2b7;
+    --ink-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --hairline: rgba(255, 255, 255, 0.1);
+    --hairline-strong: rgba(255, 255, 255, 0.18);
+    --good: #0ca30c;
+    --good-ink: #0ca30c;
+
+    --type-long: #3987e5;
+    --type-threshold: #d95926;
+    --type-easy: #199e70;
+    --type-strength: #c98500;
+    --type-strides: #d55181;
+    --type-cross: #008300;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --plane: #0d0d0d;
+  --surface: #1a1a19;
+  --surface-sunken: #131312;
+  --ink: #ffffff;
+  --ink-secondary: #c3c2b7;
+  --ink-muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --hairline: rgba(255, 255, 255, 0.1);
+  --hairline-strong: rgba(255, 255, 255, 0.18);
+  --good: #0ca30c;
+  --good-ink: #0ca30c;
+
+  --type-long: #3987e5;
+  --type-threshold: #d95926;
+  --type-easy: #199e70;
+  --type-strength: #c98500;
+  --type-strides: #d55181;
+  --type-cross: #008300;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+@theme inline {
+  --color-plane: var(--plane);
+  --color-surface: var(--surface);
+  --color-sunken: var(--surface-sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-secondary);
+  --color-ink-3: var(--ink-muted);
+  --color-grid: var(--grid);
+  --color-axis: var(--axis);
+  --color-hair: var(--hairline);
+  --color-hair-2: var(--hairline-strong);
+  --color-good: var(--good);
+  --color-good-ink: var(--good-ink);
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html {
+  background: var(--plane);
+}
+
+body {
+  background: var(--plane);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  border-color: var(--hairline);
+}
+
+/* Focus ring that reads on either surface. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--type-long);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Tabular figures for columns that must align; hero numbers stay proportional. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+/* Checkbox-style tick used to complete a session. */
+.tick {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1.5px solid var(--axis);
+  background: transparent;
+  color: transparent;
+  flex: none;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.tick:hover {
+  border-color: var(--ink-secondary);
+}
+
+.tick[data-done="true"] {
+  background: var(--good);
+  border-color: var(--good);
+  color: #ffffff;
+}
+
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 9px;
+  padding: 0.5rem 0.65rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-muted);
+}
+
+dialog::backdrop {
+  background: rgba(11, 11, 11, 0.45);
+}
