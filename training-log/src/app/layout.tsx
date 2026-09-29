@@ -9,6 +9,8 @@ const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Cadence — training log",
   description: "Plan your running week, tick off what you actually did, and watch the weeks stack up.",
+  // Opens full-screen once added to an iOS home screen.
+  appleWebApp: { capable: true, title: "Cadence", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

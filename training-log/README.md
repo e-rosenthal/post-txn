@@ -102,6 +102,14 @@ database to point it at. Both tiers below are free.
 5. **Redeploy** so the build picks up the new variable. The tables are created on
    the first request; there is no migration step to run.
 
+If you deploy before step 3, the app falls back to its local-file backend, which
+cannot write on a serverless host. It will load looking empty and then tell you
+exactly that the first time you tick something off — connect the database and
+redeploy.
+
+Once it's up, open it on your phone and use **Add to Home Screen**; it runs
+full-screen with its own icon.
+
 ### Anything else
 
 Any host that runs Node and any Postgres will do (Railway, Render, Fly, a VPS).

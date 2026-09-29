@@ -29,10 +29,22 @@ async function read(): Promise<Shape> {
 }
 
 async function write(data: Shape): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${FILE}.${process.pid}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
-  await fs.rename(tmp, FILE);
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    const tmp = `${FILE}.${process.pid}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
+    await fs.rename(tmp, FILE);
+  } catch (error) {
+    // Any failure here means this store cannot persist. The overwhelmingly common
+    // cause is a deploy with no DATABASE_URL: the host's filesystem is read-only,
+    // reads quietly return empty, and without this the app looks fine right up
+    // until the first tick-off. The errno varies by host, so don't branch on it.
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Could not save to ${DATA_DIR}. If this is a deployed app, connect a Postgres ` +
+        `database and set DATABASE_URL, then redeploy. (${detail})`,
+    );
+  }
 }
 
 // Serialise read-modify-write so two requests in flight can't clobber each other.
