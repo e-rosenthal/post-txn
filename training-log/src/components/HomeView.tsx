@@ -5,6 +5,7 @@ import { addDays, formatWeekRange, startOfWeek, yearOf } from "@/lib/dates";
 import { buildSummaries, streaks, summarizeWeek, weekRange } from "@/lib/stats";
 import type { Workout } from "@/lib/types";
 import { useToday } from "@/lib/useToday";
+import { TYPE_META } from "@/lib/workoutMeta";
 import { useAppData } from "./AppData";
 import { Confetti } from "./Confetti";
 import { ConsistencyGrid } from "./ConsistencyGrid";
@@ -27,7 +28,8 @@ export function HomeView() {
   const [editing, setEditing] = useState<EditorTarget | null>(null);
   const [cheerId, setCheerId] = useState<string | null>(null);
   const [burst, setBurst] = useState(0);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ id: number; text: string; big: boolean } | null>(null);
+  const toastSeq = useRef(0);
 
   // Celebrations are fired from event handlers, never from an effect watching the
   // data — otherwise every page load of a finished week would set off confetti.
@@ -88,19 +90,37 @@ export function HomeView() {
     }
   }
 
+  function showToast(text: string, big: boolean, ms: number) {
+    const id = (toastSeq.current += 1);
+    setToast({ id, text, big });
+    // Only clear if a newer toast hasn't already replaced this one.
+    later(() => setToast((current) => (current?.id === id ? null : current)), ms);
+  }
+
   /**
    * The bigger moment: the week's goals have all just been met. Compares the week
    * as it will be against the week as it is, so it fires on the crossing only.
+   * Returns whether it took over, so the lighter note doesn't also fire.
    */
-  function cheerIfWeekDone(next: Workout[]) {
-    if (!weekStart || !summary || summary.complete) return;
-    if (!summarizeWeek(weekStart, next, settings.goals).complete) return;
+  function cheerIfWeekDone(next: Workout[]): boolean {
+    if (!weekStart || !summary || summary.complete) return false;
+    if (!summarizeWeek(weekStart, next, settings.goals).complete) return false;
     setBurst((n) => n + 1);
     buzz([18, 55, 18, 55, 40]);
     // The current week was neutral for the streak while unfinished; now it counts.
     const run = offset === 0 ? streak.current + 1 : 0;
-    setToast(run > 1 ? `Week complete — ${run} weeks in a row` : "Week complete");
-    later(() => setToast(null), 5200);
+    showToast(run > 1 ? `Week complete — ${run} weeks in a row` : "Week complete", true, 5600);
+    return true;
+  }
+
+  /** Says what you just did and how the week stands. Warm, but mostly useful. */
+  function sessionNote(workout: Workout, next: Workout[]): string {
+    const name = workout.title.trim() || TYPE_META[workout.type].label;
+    const done = next.filter((w) => w.done).length;
+    const left = next.length - done;
+    if (left === 0) return `${name} done · that's everything planned`;
+    if (left === 1) return `${name} done · one to go`;
+    return `${name} done · ${done} of ${next.length} this week`;
   }
 
   function toggleSession(workout: Workout) {
@@ -111,7 +131,10 @@ export function HomeView() {
     setCheerId(workout.id);
     later(() => setCheerId((id) => (id === workout.id ? null : id)), 900);
     buzz(14);
-    cheerIfWeekDone(sessions.map((w) => (w.id === workout.id ? { ...w, done: true } : w)));
+
+    const next = sessions.map((w) => (w.id === workout.id ? { ...w, done: true } : w));
+    if (cheerIfWeekDone(next)) return;
+    showToast(sessionNote(workout, next), false, 2600);
   }
 
   function saveEditor(values: EditorValues) {
@@ -244,13 +267,20 @@ export function HomeView() {
           style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" }}
         >
           <div
-            className="toast-rise flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium shadow-lg"
-            style={{ background: "var(--surface)", borderColor: "var(--good)", color: "var(--ink)" }}
+            key={toast.id}
+            className={`toast-rise flex items-center gap-2 rounded-full border shadow-lg ${
+              toast.big ? "px-4 py-2.5 text-sm font-medium" : "px-3.5 py-2 text-[13px]"
+            }`}
+            style={{
+              background: "var(--surface)",
+              borderColor: toast.big ? "var(--good)" : "var(--hairline-strong)",
+              color: toast.big ? "var(--ink)" : "var(--ink-secondary)",
+            }}
           >
             <span style={{ color: "var(--good-ink)" }}>
-              <Icon name="check" className="h-4 w-4" />
+              <Icon name="check" className={toast.big ? "h-4 w-4" : "h-3.5 w-3.5"} />
             </span>
-            {toast}
+            {toast.text}
           </div>
         </div>
       ) : null}
