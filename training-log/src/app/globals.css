@@ -151,6 +151,7 @@ body {
 
 /* Checkbox-style tick used to complete a session. */
 .tick {
+  position: relative;
   display: grid;
   place-items: center;
   width: 30px;
@@ -161,6 +162,66 @@ body {
   color: transparent;
   flex: none;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+/* Finishing a session should feel like something happened: the tick punches in
+   and a ring breathes out from it. The reduced-motion rule below flattens both. */
+@keyframes tick-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.32); }
+  70% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+@keyframes tick-ring {
+  0% { opacity: 0.55; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.3); }
+}
+
+@keyframes row-sweep {
+  0% { background-color: color-mix(in srgb, var(--good) 24%, transparent); }
+  100% { background-color: color-mix(in srgb, var(--good) 7%, transparent); }
+}
+
+@keyframes count-bump {
+  0% { transform: translateY(3px); opacity: 0.4; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes toast-rise {
+  0% { transform: translateY(14px) scale(0.97); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.tick::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  border: 2px solid var(--good);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tick[data-cheer="true"] {
+  animation: tick-pop 430ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.tick[data-cheer="true"]::after {
+  animation: tick-ring 620ms ease-out;
+}
+
+/* A CSS animation outranks the inline background the row carries when done. */
+[data-cheer="true"].session-row {
+  animation: row-sweep 900ms ease-out;
+}
+
+.count-bump {
+  animation: count-bump 320ms ease-out;
+}
+
+.toast-rise {
+  animation: toast-rise 260ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
 }
 
 .tick:hover {

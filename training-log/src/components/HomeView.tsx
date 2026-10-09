@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { addDays, formatWeekRange, startOfWeek, yearOf } from "@/lib/dates";
 import { buildSummaries, streaks, summarizeWeek, weekRange } from "@/lib/stats";
+import type { Workout } from "@/lib/types";
 import { useToday } from "@/lib/useToday";
 import { useAppData } from "./AppData";
+import { Confetti } from "./Confetti";
 import { ConsistencyGrid } from "./ConsistencyGrid";
 import { SessionRow } from "./SessionRow";
 import { WorkoutEditor, type EditorTarget, type EditorValues } from "./WorkoutEditor";
@@ -23,6 +25,18 @@ export function HomeView() {
   const today = useToday();
   const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState<EditorTarget | null>(null);
+  const [cheerId, setCheerId] = useState<string | null>(null);
+  const [burst, setBurst] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+
+  // Celebrations are fired from event handlers, never from an effect watching the
+  // data — otherwise every page load of a finished week would set off confetti.
+  const timers = useRef<number[]>([]);
+  useEffect(() => () => timers.current.forEach(window.clearTimeout), []);
+  const later = useCallback((fn: () => void, ms: number) => {
+    timers.current.push(window.setTimeout(fn, ms));
+  }, []);
+  const endBurst = useCallback(() => setBurst(0), []);
 
   const currentWeek = today ? startOfWeek(today) : null;
   const weekStart = currentWeek ? addDays(currentWeek, offset * 7) : null;
@@ -65,10 +79,61 @@ export function HomeView() {
     await applyWeek({ weekStart, source, replace: true });
   }
 
+  /** Android has a vibration API; iOS Safari does not. Harmless where it is absent. */
+  function buzz(pattern: number | number[]) {
+    try {
+      navigator.vibrate?.(pattern);
+    } catch {
+      // Some browsers throw on a gesture-less call. Nothing to recover from.
+    }
+  }
+
+  /**
+   * The bigger moment: the week's goals have all just been met. Compares the week
+   * as it will be against the week as it is, so it fires on the crossing only.
+   */
+  function cheerIfWeekDone(next: Workout[]) {
+    if (!weekStart || !summary || summary.complete) return;
+    if (!summarizeWeek(weekStart, next, settings.goals).complete) return;
+    setBurst((n) => n + 1);
+    buzz([18, 55, 18, 55, 40]);
+    // The current week was neutral for the streak while unfinished; now it counts.
+    const run = offset === 0 ? streak.current + 1 : 0;
+    setToast(run > 1 ? `Week complete — ${run} weeks in a row` : "Week complete");
+    later(() => setToast(null), 5200);
+  }
+
+  function toggleSession(workout: Workout) {
+    const done = !workout.done;
+    void patchWorkout(workout.id, { done });
+    if (!done) return;
+
+    setCheerId(workout.id);
+    later(() => setCheerId((id) => (id === workout.id ? null : id)), 900);
+    buzz(14);
+    cheerIfWeekDone(sessions.map((w) => (w.id === workout.id ? { ...w, done: true } : w)));
+  }
+
   function saveEditor(values: EditorValues) {
     if (!editing || !weekStart) return;
-    if (editing.mode === "edit") void patchWorkout(editing.workout.id, values);
-    else void addWorkout({ ...values, weekStart, position: sessions.length });
+    if (editing.mode === "edit") {
+      void patchWorkout(editing.workout.id, values);
+      cheerIfWeekDone(
+        sessions.map((w) => (w.id === editing.workout.id ? { ...w, ...values } : w)),
+      );
+    } else {
+      void addWorkout({ ...values, weekStart, position: sessions.length });
+      if (values.done) {
+        const draft: Workout = {
+          id: "pending",
+          weekStart,
+          doneAt: null,
+          position: sessions.length,
+          ...values,
+        };
+        cheerIfWeekDone([...sessions, draft]);
+      }
+    }
     setEditing(null);
   }
 
@@ -123,7 +188,8 @@ export function HomeView() {
                 <SessionRow
                   key={workout.id}
                   workout={workout}
-                  onToggle={() => void patchWorkout(workout.id, { done: !workout.done })}
+                  cheering={cheerId === workout.id}
+                  onToggle={() => toggleSession(workout)}
                   onEdit={() => setEditing({ mode: "edit", workout })}
                 />
               ))}
@@ -137,7 +203,7 @@ export function HomeView() {
                 <Icon name="plus" className="h-3.5 w-3.5" />
                 Add a session
               </button>
-              <span className="tnum text-[13px] text-ink-2">
+              <span key={summary.doneCount} className="count-bump tnum text-[13px] text-ink-2">
                 {summary.doneCount} of {sessions.length} done
                 {summary.complete ? (
                   <span style={{ color: "var(--good-ink)" }}> · goals met</span>
@@ -168,6 +234,26 @@ export function HomeView() {
           Each column is one week. The last one is this week.
         </p>
       </Card>
+
+      {burst > 0 ? <Confetti key={burst} onDone={endBurst} /> : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4"
+          style={{ bottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" }}
+        >
+          <div
+            className="toast-rise flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium shadow-lg"
+            style={{ background: "var(--surface)", borderColor: "var(--good)", color: "var(--ink)" }}
+          >
+            <span style={{ color: "var(--good-ink)" }}>
+              <Icon name="check" className="h-4 w-4" />
+            </span>
+            {toast}
+          </div>
+        </div>
+      ) : null}
 
       {editing ? (
         <WorkoutEditor
