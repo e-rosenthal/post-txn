@@ -11,10 +11,13 @@ import { Icon } from "./ui";
  */
 export function SessionRow({
   workout,
+  cheering,
   onToggle,
   onEdit,
 }: {
   workout: Workout;
+  /** True for a moment right after this one is ticked off. */
+  cheering: boolean;
   onToggle: () => void;
   onEdit: () => void;
 }) {
@@ -23,7 +26,8 @@ export function SessionRow({
 
   return (
     <li
-      className="flex items-stretch border-t border-hair transition-colors first:border-t-0"
+      data-cheer={cheering ? "true" : undefined}
+      className="session-row flex items-stretch border-t border-hair transition-colors first:border-t-0"
       style={{
         background: workout.done ? "color-mix(in srgb, var(--good) 7%, transparent)" : "transparent",
       }}
@@ -35,7 +39,7 @@ export function SessionRow({
         aria-label={workout.done ? `Mark ${title} as not done` : `Mark ${title} as done`}
         className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 text-left sm:px-4"
       >
-        <span className="tick" data-done={workout.done}>
+        <span className="tick" data-done={workout.done} data-cheer={cheering ? "true" : undefined}>
           <Icon name="check" className="h-[18px] w-[18px]" />
         </span>
 
